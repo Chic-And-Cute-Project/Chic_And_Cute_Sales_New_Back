@@ -7,6 +7,7 @@ import { UsersModule } from './core/users/users.module';
 import { ProductsModule } from './core/products/products.module';
 import { DiscountsModule } from './core/discounts/discounts.module';
 import { InventoriesModule } from './core/inventories/inventories.module';
+import { RemissionGuidesModule } from './core/remission-guides/remission-guides.module';
 
 @Module({
     imports: [
@@ -27,6 +28,7 @@ import { InventoriesModule } from './core/inventories/inventories.module';
         ProductsModule,
         DiscountsModule,
         InventoriesModule,
+        RemissionGuidesModule,
     ],
     controllers: [AppController],
     providers: [AppService],
