@@ -21,7 +21,7 @@ export class User {
     role: string;
 
     @Column()
-    sede: string;
+    branch: string;
 
     @CreateDateColumn()
     createdAt: Date;
