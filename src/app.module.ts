@@ -8,6 +8,7 @@ import { ProductsModule } from './core/products/products.module';
 import { DiscountsModule } from './core/discounts/discounts.module';
 import { InventoriesModule } from './core/inventories/inventories.module';
 import { RemissionGuidesModule } from './core/remission-guides/remission-guides.module';
+import { SalesModule } from './core/sales/sales.module';
 
 @Module({
     imports: [
@@ -29,6 +30,7 @@ import { RemissionGuidesModule } from './core/remission-guides/remission-guides.
         DiscountsModule,
         InventoriesModule,
         RemissionGuidesModule,
+        SalesModule,
     ],
     controllers: [AppController],
     providers: [AppService],
