@@ -9,7 +9,7 @@ export class SalePayment {
     @Column()
     type: string;
 
-    @Column()
+    @Column({ type: 'decimal', precision: 10, scale: 2 })
     amount: number;
 
     @ManyToOne(() => Sale)
