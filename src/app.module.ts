@@ -9,6 +9,7 @@ import { DiscountsModule } from './core/discounts/discounts.module';
 import { InventoriesModule } from './core/inventories/inventories.module';
 import { RemissionGuidesModule } from './core/remission-guides/remission-guides.module';
 import { SalesModule } from './core/sales/sales.module';
+import { CloseSalesDayModule } from './core/close-sales-day/close-sales-day.module';
 
 @Module({
     imports: [
@@ -31,6 +32,7 @@ import { SalesModule } from './core/sales/sales.module';
         InventoriesModule,
         RemissionGuidesModule,
         SalesModule,
+        CloseSalesDayModule,
     ],
     controllers: [AppController],
     providers: [AppService],
