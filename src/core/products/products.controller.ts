@@ -15,7 +15,7 @@ export class ProductsController {
 
     @Post()
     @UsePipes(new ValidationPipe({ whitelist: true }))
-    register(@Body() createProductDto: CreateProductDto) {
+    create(@Body() createProductDto: CreateProductDto) {
         return this.productsService.createProduct(createProductDto);
     }
 
