@@ -3,11 +3,9 @@ import {
     CreateDateColumn,
     DeleteDateColumn,
     Entity,
-    ManyToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from "typeorm";
-import {Product} from "../products/products.entity";
 
 @Entity()
 export class Discount {
@@ -20,8 +18,8 @@ export class Discount {
     @Column()
     quantity: number;
 
-    @ManyToOne(() => Product, { nullable: true })
-    product: Product;
+    @Column({ nullable: true })
+    productId: number;
 
     @CreateDateColumn()
     createdAt: Date;

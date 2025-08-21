@@ -30,7 +30,6 @@ export class DiscountsService {
             });
         }
 
-        let product: Product | undefined = undefined;
         if (productId) {
             const productFromId = await this.productRepository.findOneBy({
                 id: productId
@@ -42,13 +41,12 @@ export class DiscountsService {
                     statusCode: 400
                 })
             }
-            product = productFromId;
         }
 
         const newDiscount = this.discountRepository.create({
             name: name,
             quantity: quantity,
-            product: product,
+            productId: productId,
         });
 
         return this.discountRepository.save(newDiscount);
