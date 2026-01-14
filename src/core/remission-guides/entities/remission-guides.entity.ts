@@ -2,12 +2,13 @@ import {
     Column,
     CreateDateColumn,
     DeleteDateColumn,
-    Entity,
+    Entity, ManyToOne,
     OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from "typeorm";
 import {RemissionGuideProduct} from "./remission-guides-products.entity";
+import {Branch} from "../../branches/branches.entity";
 
 @Entity()
 export class RemissionGuide {
@@ -15,19 +16,19 @@ export class RemissionGuide {
     id: number;
 
     @Column()
+    identifier: string;
+
+    @Column()
     date: Date;
 
-    @Column()
-    branchFrom: string;
+    @ManyToOne(() => Branch)
+    branchFrom: Branch;
 
-    @Column()
-    branchTo: string;
+    @ManyToOne(() => Branch)
+    branchTo: Branch;
 
     @Column()
     status: string;
-
-    @Column()
-    identifier: string;
 
     @OneToMany(() => RemissionGuideProduct, remissionGuideProduct => remissionGuideProduct.remissionGuide, { cascade: true })
     products: RemissionGuideProduct[];

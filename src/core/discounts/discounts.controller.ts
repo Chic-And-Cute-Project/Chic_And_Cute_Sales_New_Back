@@ -13,7 +13,7 @@ export class DiscountsController {
     @Post()
     @UsePipes(new ValidationPipe({ whitelist: true }))
     create(@Body() createDiscountDto: CreateDiscountDto) {
-        return this.discountService.createDiscount(createDiscountDto);
+        return this.discountService.create(createDiscountDto);
     }
 
     @Get('list')

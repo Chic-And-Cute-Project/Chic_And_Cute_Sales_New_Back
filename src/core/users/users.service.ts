@@ -1,12 +1,11 @@
 import {BadRequestException, Injectable, NotFoundException, UnauthorizedException} from '@nestjs/common';
 import {InjectRepository} from "@nestjs/typeorm";
-import {User} from "./users.entity";
+import {User, UserRole} from "./users.entity";
 import {ILike, Repository} from "typeorm";
 import {RegisterUserDto} from "./dto/register-user.dto";
 import * as bcrypt from 'bcrypt';
 import {LoginUserDto} from "./dto/login-user.dto";
 import {JwtService} from "@nestjs/jwt";
-import {UpdateUserDto} from "./dto/update-user.dto";
 import {ResetPasswordDto} from "./dto/reset-password.dto";
 
 @Injectable()
@@ -19,11 +18,10 @@ export class UsersService {
     ) {}
 
     async register(registerUserDto: RegisterUserDto) {
-        const { username, password } = registerUserDto;
-
-        const userExisting = await this.userRepository.findOne({
-            where: { username }
+        const userExisting = await this.userRepository.findOneBy({
+            username: registerUserDto.username
         });
+
         if (userExisting) {
             throw new BadRequestException({
                 message: ['El usuario ya está en uso.'],
@@ -32,23 +30,21 @@ export class UsersService {
             });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(registerUserDto.password, 10);
 
         const newUser = this.userRepository.create({
             ...registerUserDto,
             password: hashedPassword,
-            role: 'Vendedor',
-            branch: 'Sin sede asignada'
+            role: UserRole.BRANCH
         });
+        const savedUser = await this.userRepository.save(newUser);
 
-        return this.userRepository.save(newUser);
+        return { user: savedUser };
     }
 
     async login(loginUserDto: LoginUserDto) {
-        const { username, password } = loginUserDto;
-
         const user = await this.userRepository.findOne({
-            where: { username }
+            where: { username: loginUserDto.username },
         });
         if (!user) {
             throw new UnauthorizedException({
@@ -58,7 +54,7 @@ export class UsersService {
             });
         }
 
-        const passwordValid = await bcrypt.compare(password, user.password);
+        const passwordValid = await bcrypt.compare(loginUserDto.password, user.password);
         if (!passwordValid) {
             throw new UnauthorizedException({
                 message: ['Correo o contraseña inválidos.'],
@@ -90,7 +86,7 @@ export class UsersService {
             });
         }
 
-        return user;
+        return { user };
     }
 
     async findAll() {
@@ -109,7 +105,7 @@ export class UsersService {
     async findAllBySales() {
         const users = await this.userRepository.find({
             where: {
-                role: 'Vendedor'
+                role: UserRole.BRANCH
             }
         });
         if (!users.length) {
@@ -126,7 +122,7 @@ export class UsersService {
     async searchUserSales(name: string) {
         const users = await this.userRepository.find({
             where: {
-                role: 'Vendedor',
+                role: UserRole.BRANCH,
                 name: ILike(`%${name}%`)
             }
         });
@@ -139,23 +135,6 @@ export class UsersService {
         }
 
         return users;
-    }
-
-    async update(id: number, updateUserDto: UpdateUserDto) {
-        const user = await this.userRepository.findOneBy({
-            id
-        });
-        if (!user) {
-            throw new NotFoundException({
-                message: ['Usuario no encontrado.'],
-                error: 'Not Found',
-                statusCode: 404
-            });
-        }
-
-        await this.userRepository.update(id, updateUserDto);
-
-        return this.findById(id);
     }
 
     async resetPassword(resetPasswordDto: ResetPasswordDto) {

@@ -10,6 +10,7 @@ import { InventoriesModule } from './core/inventories/inventories.module';
 import { RemissionGuidesModule } from './core/remission-guides/remission-guides.module';
 import { SalesModule } from './core/sales/sales.module';
 import { CloseSalesDayModule } from './core/close-sales-day/close-sales-day.module';
+import { BranchesModule } from './core/branches/branches.module';
 
 @Module({
     imports: [
@@ -33,6 +34,7 @@ import { CloseSalesDayModule } from './core/close-sales-day/close-sales-day.modu
         RemissionGuidesModule,
         SalesModule,
         CloseSalesDayModule,
+        BranchesModule,
     ],
     controllers: [AppController],
     providers: [AppService],

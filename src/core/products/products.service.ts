@@ -15,12 +15,11 @@ export class ProductsService {
         private readonly productRepository: Repository<Product>,
     ) {}
 
-    async createProduct(createProductDto: CreateProductDto) {
-        const { code, fullName } = createProductDto;
-
-        const productExisting = await this.productRepository.findOne({
-            where: [{ code }, { fullName }],
+    async create(createProductDto: CreateProductDto) {
+        const productExisting = await this.productRepository.findOneBy({
+            code: createProductDto.code
         });
+
         if (productExisting) {
             throw new BadRequestException({
                 message: ['El producto ya existe.'],
@@ -30,12 +29,12 @@ export class ProductsService {
         }
 
         const newProduct = this.productRepository.create({
-            code: code,
-            fullName: fullName,
+            code: createProductDto.code,
             price: createProductDto.price
         });
+        const savedProduct = await this.productRepository.save(newProduct);
 
-        return this.productRepository.save(newProduct);
+        return { product: savedProduct };
     }
 
     async findById(id: number) {
@@ -101,7 +100,7 @@ export class ProductsService {
             skip: (page - 1) * 10,
             take: 10,
             where: {
-                fullName: ILike(`%${name}%`)
+                code: ILike(`%${name}%`)
             }
         });
         if (!products.length) {
@@ -133,7 +132,7 @@ export class ProductsService {
     async countProductsByName(name: string) {
         const count = await this.productRepository.count({
             where: {
-                fullName: ILike(`%${name}%`)
+                code: ILike(`%${name}%`)
             }
         });
         if (!count || count === 0) {

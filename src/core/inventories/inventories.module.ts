@@ -3,10 +3,12 @@ import { InventoriesController } from './inventories.controller';
 import { InventoriesService } from './inventories.service';
 import {TypeOrmModule} from "@nestjs/typeorm";
 import {Inventory} from "./inventories.entity";
+import {Product} from "../products/products.entity";
+import {Branch} from "../branches/branches.entity";
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Inventory])
+        TypeOrmModule.forFeature([Inventory, Product, Branch])
     ],
     controllers: [InventoriesController],
     providers: [InventoriesService]

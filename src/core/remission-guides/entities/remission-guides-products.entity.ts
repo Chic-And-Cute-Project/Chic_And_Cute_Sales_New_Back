@@ -10,9 +10,9 @@ export class RemissionGuideProduct {
     @Column()
     quantity: number;
 
-    @ManyToOne(() => RemissionGuide)
-    remissionGuide: RemissionGuide;
-
     @ManyToOne(() => Product)
     product: Product;
+
+    @ManyToOne(() => RemissionGuide)
+    remissionGuide: RemissionGuide;
 }

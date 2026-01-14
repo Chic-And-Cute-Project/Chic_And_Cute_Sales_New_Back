@@ -9,6 +9,7 @@ import {
 } from "typeorm";
 import {User} from "../../users/users.entity";
 import {CloseSalesDaySale} from "./close-sales-day-sale.entity";
+import {Branch} from "../../branches/branches.entity";
 
 @Entity()
 export class CloseSalesDay {
@@ -16,7 +17,10 @@ export class CloseSalesDay {
     id: number;
 
     @Column()
-    branch: string;
+    date: Date;
+
+    @ManyToOne(() => Branch)
+    branch: Branch;
 
     @ManyToOne(() => User)
     user: User;

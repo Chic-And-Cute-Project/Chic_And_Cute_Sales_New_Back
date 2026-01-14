@@ -11,9 +11,9 @@ export class CloseSalesDaySale {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @ManyToOne(() => CloseSalesDay)
-    closeSalesDay: CloseSalesDay;
-
     @ManyToOne(() => Sale)
     sale: Sale;
+
+    @ManyToOne(() => CloseSalesDay)
+    closeSalesDay: CloseSalesDay;
 }

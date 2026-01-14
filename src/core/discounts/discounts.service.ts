@@ -16,12 +16,11 @@ export class DiscountsService {
         private readonly productRepository: Repository<Product>,
     ) {}
 
-    async createDiscount(createDiscountDto: CreateDiscountDto) {
-        const { name, quantity, productId } = createDiscountDto;
-
+    async create(createDiscountDto: CreateDiscountDto) {
         const discountExisting = await this.discountRepository.findOne({
-            where: [{ name }, { quantity }]
+            where: { name: createDiscountDto.name,  quantity: createDiscountDto.quantity }
         });
+
         if (discountExisting) {
             throw new BadRequestException({
                 message: ['El descuento ya existe.'],
@@ -30,26 +29,35 @@ export class DiscountsService {
             });
         }
 
-        if (productId) {
-            const productFromId = await this.productRepository.findOneBy({
-                id: productId
+        if (createDiscountDto.productId) {
+            const product = await this.productRepository.findOneBy({
+                id: createDiscountDto.productId
             });
-            if (!productFromId) {
+            if (!product) {
                 throw new BadRequestException({
                     message: ['El producto no existe.'],
                     error: "Bad Request",
                     statusCode: 400
                 })
             }
+
+            const newDiscount = this.discountRepository.create({
+                name: createDiscountDto.name,
+                quantity: createDiscountDto.quantity,
+                product: product,
+            });
+            const savedDiscount = await this.discountRepository.save(newDiscount);
+
+            return { discount: savedDiscount };
+        } else {
+            const newDiscount = this.discountRepository.create({
+                name: createDiscountDto.name,
+                quantity: createDiscountDto.quantity
+            });
+            const savedDiscount = await this.discountRepository.save(newDiscount);
+
+            return { discount: savedDiscount };
         }
-
-        const newDiscount = this.discountRepository.create({
-            name: name,
-            quantity: quantity,
-            productId: productId,
-        });
-
-        return this.discountRepository.save(newDiscount);
     }
 
     async findById(id: number) {

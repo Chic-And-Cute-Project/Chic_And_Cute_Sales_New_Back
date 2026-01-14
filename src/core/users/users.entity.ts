@@ -1,4 +1,17 @@
-import {Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn} from "typeorm";
+import {
+    Column,
+    CreateDateColumn,
+    DeleteDateColumn,
+    Entity,
+    ManyToOne,
+    PrimaryGeneratedColumn,
+    UpdateDateColumn
+} from "typeorm";
+import {Branch} from "../branches/branches.entity";
+
+export enum UserRole {
+    SUPER_ADMIN = 'SUPER_ADMIN', ADMIN = 'ADMIN', BRANCH = 'BRANCH'
+}
 
 @Entity()
 export class User {
@@ -17,11 +30,11 @@ export class User {
     @Column()
     password: string;
 
-    @Column()
-    role: string;
+    @Column({ type: 'enum', enum: UserRole })
+    role: UserRole;
 
-    @Column()
-    branch: string;
+    @ManyToOne(() => Branch)
+    branch: Branch;
 
     @CreateDateColumn()
     createdAt: Date;

@@ -8,6 +8,7 @@ import {
     UpdateDateColumn
 } from "typeorm";
 import {Product} from "../products/products.entity";
+import {Branch} from "../branches/branches.entity";
 
 @Entity()
 export class Inventory {
@@ -15,10 +16,10 @@ export class Inventory {
     id: number;
 
     @Column()
-    branch: string;
-
-    @Column()
     quantity: number;
+
+    @ManyToOne(() => Branch)
+    branch: Branch;
 
     @ManyToOne(() => Product)
     product: Product;

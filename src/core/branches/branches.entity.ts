@@ -1,15 +1,12 @@
 import {Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn} from "typeorm";
 
 @Entity()
-export class Product {
+export class Branch {
     @PrimaryGeneratedColumn()
     id: number;
 
     @Column()
-    code: string;
-
-    @Column({ type: 'decimal', precision: 10, scale: 2 })
-    price: number;
+    name: string;
 
     @CreateDateColumn()
     createdAt: Date;

@@ -10,6 +10,7 @@ import {
 import {User} from "../../users/users.entity";
 import {SaleDetail} from "./sales-detail.entity";
 import {SalePayment} from "./sales-payment.entity";
+import {Branch} from "../../branches/branches.entity";
 
 @Entity()
 export class Sale {
@@ -17,7 +18,10 @@ export class Sale {
     id: number;
 
     @Column()
-    branch: string;
+    date: Date;
+
+    @ManyToOne(() => Branch)
+    branch: Branch;
 
     @ManyToOne(() => User)
     user: User;

@@ -10,12 +10,12 @@ export class SaleDetail {
     @Column()
     quantity: number;
 
-    @Column()
+    @Column({ nullable: true })
     discount: number;
-
-    @ManyToOne(() => Sale)
-    sale: Sale;
 
     @ManyToOne(() => Product)
     product: Product;
+
+    @ManyToOne(() => Sale)
+    sale: Sale;
 }
