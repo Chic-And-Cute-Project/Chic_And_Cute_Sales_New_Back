@@ -23,7 +23,7 @@ export class UsersController {
         return this.usersService.login(loginUserDto);
     }
 
-    @Get('myObject')
+    @Get('my')
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth('jwt-auth')
     myObject(@Request() req: any) {
