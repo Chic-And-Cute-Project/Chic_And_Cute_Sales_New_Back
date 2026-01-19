@@ -6,13 +6,14 @@ import {User} from "./users.entity";
 import {JwtModule} from "@nestjs/jwt";
 import {JwtStrategy} from "../../security/jwt.strategy";
 import {ConfigModule} from "@nestjs/config";
+import {Branch} from "../branches/branches.entity";
 
 @Module({
     imports: [
         ConfigModule.forRoot({
             isGlobal: true
         }),
-        TypeOrmModule.forFeature([User]),
+        TypeOrmModule.forFeature([User, Branch]),
         JwtModule.register({
             secret: process.env.JWT_SECRET ?? 'Secret_Key_Chic_&_Cute_Back_022506',
             signOptions: { expiresIn: '1w' },

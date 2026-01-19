@@ -7,6 +7,8 @@ import * as bcrypt from 'bcrypt';
 import {LoginUserDto} from "./dto/login-user.dto";
 import {JwtService} from "@nestjs/jwt";
 import {ResetPasswordDto} from "./dto/reset-password.dto";
+import {Branch} from "../branches/branches.entity";
+import {UpdateUserDto} from "./dto/update-user.dto";
 
 @Injectable()
 export class UsersService {
@@ -14,6 +16,8 @@ export class UsersService {
     constructor(
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
+        @InjectRepository(Branch)
+        private readonly branchRepository: Repository<Branch>,
         private jwtService: JwtService,
     ) {}
 
@@ -30,12 +34,25 @@ export class UsersService {
             });
         }
 
+        const defaultBranch = await this.branchRepository.findOneBy({
+            name: 'Sin sede asignada'
+        });
+
+        if (!defaultBranch) {
+            throw new BadRequestException({
+                message: ['La sede por defecto no existe.'],
+                error: "Bad Request",
+                statusCode: 400
+            });
+        }
+
         const hashedPassword = await bcrypt.hash(registerUserDto.password, 10);
 
         const newUser = this.userRepository.create({
             ...registerUserDto,
             password: hashedPassword,
-            role: UserRole.BRANCH
+            role: UserRole.BRANCH,
+            branch: defaultBranch
         });
         const savedUser = await this.userRepository.save(newUser);
 
@@ -75,8 +92,9 @@ export class UsersService {
     }
 
     async findById(id: number) {
-        const user = await this.userRepository.findOneBy({
-            id
+        const user = await this.userRepository.findOne({
+            where: { id },
+            relations: ['branch']
         });
         if (!user) {
             throw new NotFoundException({
@@ -89,9 +107,13 @@ export class UsersService {
         return { user };
     }
 
-    async findAll() {
-        const users = await this.userRepository.find();
-        if (!users.length) {
+    async findAllByBranchRole() {
+        const users = await this.userRepository.find({
+            where: { role: UserRole.BRANCH },
+            relations: ['branch']
+        });
+
+        if (users.length === 0) {
             throw new NotFoundException({
                 message: ['Usuarios no encontrados.'],
                 error: 'Not Found',
@@ -99,34 +121,44 @@ export class UsersService {
             });
         }
 
-        return users;
+        return { users };
     }
 
-    async findAllBySales() {
-        const users = await this.userRepository.find({
-            where: {
-                role: UserRole.BRANCH
-            }
+    async update(id: number, updateUserDto: UpdateUserDto) {
+        const user = await this.userRepository.findOneBy({
+            id
         });
-        if (!users.length) {
+        if (!user) {
             throw new NotFoundException({
-                message: ['Usuarios no encontrados.'],
+                message: ['Usuario no encontrado.'],
                 error: 'Not Found',
                 statusCode: 404
             });
         }
 
-        return users;
+        const branch = await this.branchRepository.findOneBy({
+            id: updateUserDto.branchId
+        });
+        if (!branch) {
+            throw new BadRequestException({
+                message: ['Sucursal no encontrada.'],
+                error: "Bad Request",
+                statusCode: 400
+            });
+        }
+
+        await this.userRepository.update(id, { branch: branch });
+
+        return this.findById(id);
     }
 
     async searchUserSales(name: string) {
         const users = await this.userRepository.find({
-            where: {
-                role: UserRole.BRANCH,
-                name: ILike(`%${name}%`)
-            }
+            where: { role: UserRole.BRANCH, name: ILike(`%${name}%`) },
+            relations: ['branch']
         });
-        if (!users.length) {
+
+        if (users.length === 0) {
             throw new NotFoundException({
                 message: ['Usuarios no encontrados.'],
                 error: 'Not Found',
@@ -134,7 +166,7 @@ export class UsersService {
             });
         }
 
-        return users;
+        return { users };
     }
 
     async resetPassword(resetPasswordDto: ResetPasswordDto) {
