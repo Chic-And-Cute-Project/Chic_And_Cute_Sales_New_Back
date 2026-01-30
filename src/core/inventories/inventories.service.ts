@@ -1,10 +1,12 @@
-import {BadRequestException, Injectable} from '@nestjs/common';
+import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from "@nestjs/typeorm";
-import {Repository} from "typeorm";
+import {ILike, Repository} from "typeorm";
 import {Inventory} from "./inventories.entity";
 import {CreateInventoryDto} from "./dto/create-inventory.dto";
 import {Product} from "../products/products.entity";
 import {Branch} from "../branches/branches.entity";
+import {UpdateInventoryDto} from "./dto/update-inventory.dto";
+import {User} from "../users/users.entity";
 
 @Injectable()
 export class InventoriesService {
@@ -16,6 +18,8 @@ export class InventoriesService {
         private readonly productRepository: Repository<Product>,
         @InjectRepository(Branch)
         private readonly branchRepository: Repository<Branch>,
+        @InjectRepository(User)
+        private readonly userRepository: Repository<User>,
     ) {}
 
     async create(createInventoryDto: CreateInventoryDto) {
@@ -63,5 +67,199 @@ export class InventoriesService {
         const savedInventory = await this.inventoryRepository.save(newInventory);
 
         return { inventory: savedInventory };
+    }
+
+    async findById(id: number) {
+        const inventory = await this.inventoryRepository.findOneBy({
+            id
+        });
+        if (!inventory) {
+            throw new NotFoundException({
+                message: ['Inventario no encontrado.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        return { inventory };
+    }
+
+    async findAllByBranchAndPage(branchId: number, page: number) {
+        const inventories = await this.inventoryRepository.find({
+            where: { branch: { id: branchId } },
+            relations: ['product'],
+            skip: page * 10,
+            take: 10
+        });
+        if (inventories.length === 0) {
+            throw new NotFoundException({
+                message: ['Inventarios no encontrados.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        return { inventories };
+    }
+
+    async findAllByMyBranchAndPage(userId: number, page: number) {
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+            relations: ['branch']
+        });
+        if (!user) {
+            throw new NotFoundException({
+                message: ['Usuario no encontrado.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        if (user.branch.name === 'Sin sede asignada') {
+            throw new BadRequestException({
+                message: ['No tiene asignada una sucursal.'],
+                error: "Bad Request",
+                statusCode: 400
+            });
+        }
+
+        return this.findAllByBranchAndPage(user.branch.id, page);
+    }
+
+    async searchInventoryByBranchAndPage(code: string, branchId: number, page: number) {
+        const inventories = await this.inventoryRepository.find({
+            where: { branch: { id: branchId }, product: { code: ILike(`%${code}%`)} },
+            relations: ['product'],
+            skip: page * 10,
+            take: 10
+        });
+        if (inventories.length === 0) {
+            throw new NotFoundException({
+                message: ['Inventarios no encontrados.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        return { inventories };
+    }
+
+    async searchInventoryByMyBranchAndPage(code: string, userId: number, page: number) {
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+            relations: ['branch']
+        });
+        if (!user) {
+            throw new NotFoundException({
+                message: ['Usuario no encontrado.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        if (user.branch.name === 'Sin sede asignada') {
+            throw new BadRequestException({
+                message: ['No tiene asignada una sucursal.'],
+                error: "Bad Request",
+                statusCode: 400
+            });
+        }
+
+        return this.searchInventoryByBranchAndPage(code, user.branch.id, page);
+    }
+
+    async countInventoriesByBranch(branchId: number) {
+        const count = await this.inventoryRepository.count({
+            where: { branch: { id: branchId } },
+        });
+        if (count === 0) {
+            throw new NotFoundException({
+                message: ['Inventarios no encontrados.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        return { count };
+    }
+
+    async countInventoriesByMyBranch(userId: number) {
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+            relations: ['branch']
+        });
+        if (!user) {
+            throw new NotFoundException({
+                message: ['Usuario no encontrado.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        if (user.branch.name === 'Sin sede asignada') {
+            throw new BadRequestException({
+                message: ['No tiene asignada una sucursal.'],
+                error: "Bad Request",
+                statusCode: 400
+            });
+        }
+
+        return this.countInventoriesByBranch(user.branch.id);
+    }
+
+    async countInventoriesByBranchAndCode(code: string, branchId: number) {
+        const count = await this.inventoryRepository.count({
+            where: { branch: { id: branchId }, product: { code: ILike(`%${code}%`) } },
+        });
+        if (count === 0) {
+            throw new NotFoundException({
+                message: ['Inventarios no encontrados.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        return { count };
+    }
+
+    async countInventoriesByMyBranchAndCode(code: string, userId: number) {
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+            relations: ['branch']
+        });
+        if (!user) {
+            throw new NotFoundException({
+                message: ['Usuario no encontrado.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        if (user.branch.name === 'Sin sede asignada') {
+            throw new BadRequestException({
+                message: ['No tiene asignada una sucursal.'],
+                error: "Bad Request",
+                statusCode: 400
+            });
+        }
+
+        return this.countInventoriesByBranchAndCode(code, user.branch.id);
+    }
+
+    async update(id: number, updateInventoryDto: UpdateInventoryDto) {
+        const inventory = await this.inventoryRepository.findOneBy({
+            id
+        });
+        if (!inventory) {
+            throw new NotFoundException({
+                message: ['Inventario no encontrado.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        await this.inventoryRepository.update(id, updateInventoryDto);
+
+        return this.findById(id);
     }
 }

@@ -1,5 +1,5 @@
 import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
-import {Repository} from "typeorm";
+import {Not, Repository} from "typeorm";
 import {Branch} from "./branches.entity";
 import {InjectRepository} from "@nestjs/typeorm";
 import {UpdateBranchDto} from "./dto/update-branch.dto";
@@ -36,6 +36,22 @@ export class BranchesService {
 
   async findAll() {
     const branches = await this.branchRepository.find();
+
+    if (branches.length === 0) {
+      throw new NotFoundException({
+        message: ['Sucursales no encontradas.'],
+        error: 'Not Found',
+        statusCode: 404
+      });
+    }
+
+    return { branches };
+  }
+
+  async findAllByActive() {
+    const branches = await this.branchRepository.find({
+      where: { name: Not('Sin sede asignada') },
+    });
 
     if (branches.length === 0) {
       throw new NotFoundException({
