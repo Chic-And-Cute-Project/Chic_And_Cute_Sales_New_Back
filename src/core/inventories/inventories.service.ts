@@ -1,6 +1,6 @@
 import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from "@nestjs/typeorm";
-import {ILike, Repository} from "typeorm";
+import {ILike, MoreThan, Repository} from "typeorm";
 import {Inventory} from "./inventories.entity";
 import {CreateInventoryDto} from "./dto/create-inventory.dto";
 import {Product} from "../products/products.entity";
@@ -84,9 +84,9 @@ export class InventoriesService {
         return { inventory };
     }
 
-    async findAllByBranchAndPage(branchId: number, page: number) {
+    async findAllByBranchAndPage(branchId: number, page: number, available: boolean = false) {
         const inventories = await this.inventoryRepository.find({
-            where: { branch: { id: branchId } },
+            where: { branch: { id: branchId }, ...(available ? { quantity: MoreThan(0) } : {}) },
             relations: ['product'],
             skip: page * 10,
             take: 10
@@ -102,7 +102,7 @@ export class InventoriesService {
         return { inventories };
     }
 
-    async findAllByMyBranchAndPage(userId: number, page: number) {
+    async findAllByMyBranchAndPage(userId: number, page: number, available: boolean = false) {
         const user = await this.userRepository.findOne({
             where: { id: userId },
             relations: ['branch']
@@ -123,12 +123,12 @@ export class InventoriesService {
             });
         }
 
-        return this.findAllByBranchAndPage(user.branch.id, page);
+        return this.findAllByBranchAndPage(user.branch.id, page, available);
     }
 
-    async searchInventoryByBranchAndPage(code: string, branchId: number, page: number) {
+    async searchInventoryByBranchAndPage(code: string, branchId: number, page: number, available: boolean = false) {
         const inventories = await this.inventoryRepository.find({
-            where: { branch: { id: branchId }, product: { code: ILike(`%${code}%`)} },
+            where: { branch: { id: branchId }, product: { code: ILike(`%${code}%`) }, ...(available ? { quantity: MoreThan(0) } : {}) },
             relations: ['product'],
             skip: page * 10,
             take: 10
@@ -144,7 +144,7 @@ export class InventoriesService {
         return { inventories };
     }
 
-    async searchInventoryByMyBranchAndPage(code: string, userId: number, page: number) {
+    async searchInventoryByMyBranchAndPage(code: string, userId: number, page: number, available: boolean = false) {
         const user = await this.userRepository.findOne({
             where: { id: userId },
             relations: ['branch']
@@ -165,12 +165,12 @@ export class InventoriesService {
             });
         }
 
-        return this.searchInventoryByBranchAndPage(code, user.branch.id, page);
+        return this.searchInventoryByBranchAndPage(code, user.branch.id, page, available);
     }
 
-    async countInventoriesByBranch(branchId: number) {
+    async countInventoriesByBranch(branchId: number, available: boolean = false) {
         const count = await this.inventoryRepository.count({
-            where: { branch: { id: branchId } },
+            where: { branch: { id: branchId }, ...(available ? { quantity: MoreThan(0) } : {}) },
         });
         if (count === 0) {
             throw new NotFoundException({
@@ -183,7 +183,7 @@ export class InventoriesService {
         return { count };
     }
 
-    async countInventoriesByMyBranch(userId: number) {
+    async countInventoriesByMyBranch(userId: number, available: boolean = false) {
         const user = await this.userRepository.findOne({
             where: { id: userId },
             relations: ['branch']
@@ -204,12 +204,12 @@ export class InventoriesService {
             });
         }
 
-        return this.countInventoriesByBranch(user.branch.id);
+        return this.countInventoriesByBranch(user.branch.id, available);
     }
 
-    async countInventoriesByBranchAndCode(code: string, branchId: number) {
+    async countInventoriesByBranchAndCode(code: string, branchId: number, available: boolean = false) {
         const count = await this.inventoryRepository.count({
-            where: { branch: { id: branchId }, product: { code: ILike(`%${code}%`) } },
+            where: { branch: { id: branchId }, product: { code: ILike(`%${code}%`) }, ...(available ? { quantity: MoreThan(0) } : {}) },
         });
         if (count === 0) {
             throw new NotFoundException({
@@ -222,7 +222,7 @@ export class InventoriesService {
         return { count };
     }
 
-    async countInventoriesByMyBranchAndCode(code: string, userId: number) {
+    async countInventoriesByMyBranchAndCode(code: string, userId: number, available: boolean = false) {
         const user = await this.userRepository.findOne({
             where: { id: userId },
             relations: ['branch']
@@ -243,7 +243,7 @@ export class InventoriesService {
             });
         }
 
-        return this.countInventoriesByBranchAndCode(code, user.branch.id);
+        return this.countInventoriesByBranchAndCode(code, user.branch.id, available);
     }
 
     async update(id: number, updateInventoryDto: UpdateInventoryDto) {
