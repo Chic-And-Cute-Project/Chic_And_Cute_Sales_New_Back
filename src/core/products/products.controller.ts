@@ -1,12 +1,21 @@
-import {Body, Controller, Delete, Get, Post, Put, Query, UsePipes, ValidationPipe} from '@nestjs/common';
+import {
+    BadRequestException,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    ParseIntPipe,
+    Post,
+    Put,
+    Query,
+    UsePipes,
+    ValidationPipe
+} from '@nestjs/common';
 import {ProductsService} from "./products.service";
 import {CreateProductDto} from "./dto/create-product.dto";
 import {ApiQuery} from "@nestjs/swagger";
 import {UpdateProductDto} from "./dto/update-product.dto";
-import {UpdateProductQueryDto} from "./dto/update-product-query.dto";
-import {DeleteProductQueryDto} from "./dto/delete-product-query.dto";
-import {PaginationDto} from "./dto/pagination.dto";
-import {SearchProductQueryDto} from "./dto/search-product-query.dto";
 
 @Controller('products')
 export class ProductsController {
@@ -19,11 +28,9 @@ export class ProductsController {
         return this.productsService.create(createProductDto);
     }
 
-    @Get('listByPage')
-    @ApiQuery({ name: 'page', type: Number, required: true })
-    @UsePipes(new ValidationPipe({ whitelist: true }))
-    getAllByPage(@Query() paginationDto: PaginationDto) {
-        return this.productsService.findAllByPage(paginationDto);
+    @Get('page/:page')
+    getAllByPage(@Param('page', new ParseIntPipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser un número") })) page: number) {
+        return this.productsService.findAllByPage(page);
     }
 
     @Get('code')
@@ -33,34 +40,28 @@ export class ProductsController {
     }
 
     @Get('count')
-    countProducts() {
-        return this.productsService.countProducts();
+    count() {
+        return this.productsService.count();
     }
 
-    @Get('search')
-    @ApiQuery({ name: 'page', type: Number, required: true })
-    @ApiQuery({ name: 'name', type: String, required: true })
+    @Get('search/:code/:page')
+    searchProductByPage(@Param('code') code: string, @Param('page', new ParseIntPipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser un número") })) page: number) {
+        return this.productsService.searchProductByPage(code, page);
+    }
+
+    @Get('count/code/:code')
+    countByProductCode(@Param('code') code: string) {
+        return this.productsService.countProductsByCode(code);
+    }
+
+    @Put(':id')
     @UsePipes(new ValidationPipe({ whitelist: true }))
-    searchProduct(@Query() searchProductQueryDto: SearchProductQueryDto) {
-        return this.productsService.searchProduct(searchProductQueryDto);
+    update(@Param('id', new ParseIntPipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser un número") })) id: number, @Body() updateProductDto: UpdateProductDto) {
+        return this.productsService.update(id, updateProductDto);
     }
 
-    @Get('countByProduct')
-    @ApiQuery({ name: 'name', type: String, required: true })
-    countProductByName(@Query('name') name: string) {
-        return this.productsService.countProductsByName(name);
-    }
-
-    @Put()
-    @ApiQuery({ name: 'id', type: Number, required: true })
-    @UsePipes(new ValidationPipe({ whitelist: true }))
-    update(@Query() query: UpdateProductQueryDto, @Body() updateProductDto: UpdateProductDto) {
-        return this.productsService.update(query.id, updateProductDto);
-    }
-
-    @Delete()
-    @ApiQuery({ name: 'id', type: Number, required: true })
-    delete(@Query() query: DeleteProductQueryDto) {
-        return this.productsService.delete(query.id);
+    @Delete(':id')
+    delete(@Param('id', new ParseIntPipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser un número") })) id: number) {
+        return this.productsService.delete(id);
     }
 }

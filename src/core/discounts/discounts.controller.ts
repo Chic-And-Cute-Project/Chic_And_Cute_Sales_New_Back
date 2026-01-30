@@ -1,9 +1,18 @@
-import {Body, Controller, Get, Post, Put, Query, UsePipes, ValidationPipe} from '@nestjs/common';
+import {
+    BadRequestException,
+    Body,
+    Controller,
+    Get,
+    Param,
+    ParseIntPipe,
+    Post,
+    Put,
+    UsePipes,
+    ValidationPipe
+} from '@nestjs/common';
 import {DiscountsService} from "./discounts.service";
 import {CreateDiscountDto} from "./dto/create-discount.dto";
-import {ApiQuery} from "@nestjs/swagger";
 import {UpdateDiscountDto} from "./dto/update-discount.dto";
-import {UpdateDiscountQueryDto} from "./dto/update-discount-query.dto";
 
 @Controller('discounts')
 export class DiscountsController {
@@ -16,15 +25,14 @@ export class DiscountsController {
         return this.discountService.create(createDiscountDto);
     }
 
-    @Get('list')
+    @Get()
     getAll() {
         return this.discountService.findAll();
     }
 
-    @Put()
-    @ApiQuery({ name: 'id', type: Number, required: true })
+    @Put(':id')
     @UsePipes(new ValidationPipe({ whitelist: true }))
-    update(@Query() query: UpdateDiscountQueryDto, @Body() updateDiscountDto: UpdateDiscountDto) {
-        return this.discountService.update(query.id, updateDiscountDto);
+    update(@Param('id', new ParseIntPipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser un número") })) id: number, @Body() updateDiscountDto: UpdateDiscountDto) {
+        return this.discountService.update(id, updateDiscountDto);
     }
 }

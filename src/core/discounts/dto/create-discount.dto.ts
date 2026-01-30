@@ -1,5 +1,5 @@
 import {ApiProperty} from "@nestjs/swagger";
-import {IsInt, IsNotEmpty, IsNumber, IsOptional} from "class-validator";
+import {IsInt, IsNotEmpty, IsOptional} from "class-validator";
 import {Type} from "class-transformer";
 
 export class CreateDiscountDto {
@@ -14,8 +14,7 @@ export class CreateDiscountDto {
     quantity: number;
 
     @IsOptional()
-    @IsNumber({}, { message: "El producto asociado debe ser un número." })
-    @ApiProperty({ example: 1 })
-    @Type(() => Number)
-    productId: number;
+    @IsNotEmpty({ message: 'El código de producto asociado es obligatorio.' })
+    @ApiProperty({ example: 'string' })
+    productCode: string;
 }

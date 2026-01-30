@@ -29,9 +29,9 @@ export class DiscountsService {
             });
         }
 
-        if (createDiscountDto.productId) {
+        if (createDiscountDto.productCode) {
             const product = await this.productRepository.findOneBy({
-                id: createDiscountDto.productId
+                code: createDiscountDto.productCode
             });
             if (!product) {
                 throw new BadRequestException({
@@ -61,8 +61,10 @@ export class DiscountsService {
     }
 
     async findById(id: number) {
-        const discount = await this.discountRepository.findOneBy({
-            id
+        const discount = await this.discountRepository.findOne({
+            where: { id },
+            relations: ['product'],
+            withDeleted: true
         });
         if (!discount) {
             throw new NotFoundException({
@@ -72,12 +74,15 @@ export class DiscountsService {
             });
         }
 
-        return discount;
+        return { discount };
     }
 
     async findAll() {
-        const discounts = await this.discountRepository.find();
-        if (!discounts.length) {
+        const discounts = await this.discountRepository.find({
+            relations: ['product'],
+            withDeleted: true
+        });
+        if (discounts.length === 0) {
             throw new BadRequestException({
                 message: ['Descuentos no encontrados.'],
                 error: "Not Found",
@@ -85,7 +90,7 @@ export class DiscountsService {
             });
         }
 
-        return discounts;
+        return { discounts };
     }
 
     async update(id: number, updateDiscountDto: UpdateDiscountDto) {
@@ -94,7 +99,7 @@ export class DiscountsService {
         });
         if (!discount) {
             throw new BadRequestException({
-                message: ['El descuento no existe.'],
+                message: ['Descuento no encontrado.'],
                 error: "Bad Request",
                 statusCode: 400
             });

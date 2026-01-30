@@ -1,11 +1,11 @@
 import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from "@nestjs/typeorm";
-import {ILike, Repository} from "typeorm";
+import {DataSource, ILike, Not, Repository} from "typeorm";
 import {Product} from "./products.entity";
 import {CreateProductDto} from "./dto/create-product.dto";
-import {PaginationDto} from "./dto/pagination.dto";
-import {SearchProductQueryDto} from "./dto/search-product-query.dto";
 import {UpdateProductDto} from "./dto/update-product.dto";
+import {Inventory} from "../inventories/inventories.entity";
+import {Branch} from "../branches/branches.entity";
 
 @Injectable()
 export class ProductsService {
@@ -13,6 +13,9 @@ export class ProductsService {
     constructor(
         @InjectRepository(Product)
         private readonly productRepository: Repository<Product>,
+        @InjectRepository(Branch)
+        private readonly branchRepository: Repository<Branch>,
+        private dataSource: DataSource
     ) {}
 
     async create(createProductDto: CreateProductDto) {
@@ -28,11 +31,31 @@ export class ProductsService {
             });
         }
 
-        const newProduct = this.productRepository.create({
-            code: createProductDto.code,
-            price: createProductDto.price
+        const branches = await this.branchRepository.find({
+            where: { name: Not('Sin sede asignada') }
         });
-        const savedProduct = await this.productRepository.save(newProduct);
+
+        const savedProduct = await this.dataSource.transaction(async manager => {
+            const productRepository = manager.getRepository(Product);
+            const inventoryRepository = manager.getRepository(Inventory);
+
+            const newProduct = productRepository.create({
+                code: createProductDto.code,
+                price: createProductDto.price
+            });
+            const savedProduct = await productRepository.save(newProduct);
+
+            for (const branch of branches) {
+                const newInventory = inventoryRepository.create({
+                    quantity: 0,
+                    product: savedProduct,
+                    branch: branch
+                });
+                await inventoryRepository.save(newInventory);
+            }
+
+            return savedProduct;
+        });
 
         return { product: savedProduct };
     }
@@ -49,17 +72,15 @@ export class ProductsService {
             });
         }
 
-        return product;
+        return { product };
     }
 
-    async findAllByPage(paginationDto: PaginationDto) {
-        const { page } = paginationDto;
-
+    async findAllByPage(page: number) {
         const products = await this.productRepository.find({
-            skip: (page - 1) * 10,
+            skip: page * 10,
             take: 10
         });
-        if (!products.length) {
+        if (products.length === 0) {
             throw new NotFoundException({
                 message: ['Productos no encontrados.'],
                 error: 'Not Found',
@@ -67,7 +88,7 @@ export class ProductsService {
             });
         }
 
-        return products;
+        return { products };
     }
 
     async findByCode(code: string) {
@@ -93,17 +114,15 @@ export class ProductsService {
         return product;
     }
 
-    async searchProduct(searchProductQueryDto: SearchProductQueryDto) {
-        const { page, name } = searchProductQueryDto;
-
+    async searchProductByPage(code: string, page: number) {
         const products = await this.productRepository.find({
-            skip: (page - 1) * 10,
+            skip: page * 10,
             take: 10,
             where: {
-                code: ILike(`%${name}%`)
+                code: ILike(`%${code}%`)
             }
         });
-        if (!products.length) {
+        if (products.length === 0) {
             throw new NotFoundException({
                 message: ['Productos no encontrados.'],
                 error: 'Not Found',
@@ -111,12 +130,12 @@ export class ProductsService {
             });
         }
 
-        return products;
+        return { products };
     }
 
-    async countProducts() {
+    async count() {
         const count = await this.productRepository.count();
-        if (!count || count === 0) {
+        if (count === 0) {
             throw new NotFoundException({
                 message: ['Productos no encontrados.'],
                 error: 'Not Found',
@@ -124,18 +143,16 @@ export class ProductsService {
             });
         }
 
-        return {
-            count: count
-        };
+        return { count };
     }
 
-    async countProductsByName(name: string) {
+    async countProductsByCode(code: string) {
         const count = await this.productRepository.count({
             where: {
-                code: ILike(`%${name}%`)
+                code: ILike(`%${code}%`)
             }
         });
-        if (!count || count === 0) {
+        if (count === 0) {
             throw new NotFoundException({
                 message: ['Productos no encontrados.'],
                 error: 'Not Found',
@@ -143,9 +160,7 @@ export class ProductsService {
             });
         }
 
-        return {
-            count: count
-        };
+        return { count };
     }
 
     async update(id: number, updateProductDto: UpdateProductDto) {
@@ -166,18 +181,37 @@ export class ProductsService {
     }
 
     async delete(id: number) {
-        const result = await this.productRepository.softDelete(id);
+        const result = await this.dataSource.transaction(async manager => {
+            const productRepository = manager.getRepository(Product);
+            const inventoryRepository = manager.getRepository(Inventory);
 
-        if (result.affected === 0) {
-            throw new NotFoundException({
-                message: ['Producto no encontrado.'],
-                error: 'Not Found',
-                statusCode: 404
+            const result = await productRepository.softDelete(id);
+
+            if (result.affected === 0) {
+                throw new NotFoundException({
+                    message: ['Producto no encontrado.'],
+                    error: 'Not Found',
+                    statusCode: 404
+                });
+            }
+
+            const resultInventories = await inventoryRepository.softDelete({
+                product: { id}
             });
-        } else {
+
+            if (resultInventories.affected === 0) {
+                throw new NotFoundException({
+                    message: ['Inventarios no encontrados.'],
+                    error: 'Not Found',
+                    statusCode: 404
+                });
+            }
+
             return {
                 message: 'Producto eliminado correctamente.'
-            }
-        }
+            };
+        });
+
+        return { result: result.message }
     }
 }
