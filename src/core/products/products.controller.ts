@@ -33,12 +33,6 @@ export class ProductsController {
         return this.productsService.findAllByPage(page);
     }
 
-    @Get('code')
-    @ApiQuery({ name: 'code', type: String, required: true })
-    getByCode(@Query('code') code: string) {
-        return this.productsService.findByCode(code);
-    }
-
     @Get('count')
     count() {
         return this.productsService.count();

@@ -91,29 +91,6 @@ export class ProductsService {
         return { products };
     }
 
-    async findByCode(code: string) {
-        if (!code) {
-            throw new NotFoundException({
-                message: ['Producto no encontrado.'],
-                error: 'Not Found',
-                statusCode: 404
-            });
-        }
-
-        const product = await this.productRepository.findOne({
-            where: { code }
-        });
-        if (!product) {
-            throw new NotFoundException({
-                message: ['Producto no encontrado.'],
-                error: 'Not Found',
-                statusCode: 404
-            });
-        }
-
-        return product;
-    }
-
     async searchProductByPage(code: string, page: number) {
         const products = await this.productRepository.find({
             skip: page * 10,
