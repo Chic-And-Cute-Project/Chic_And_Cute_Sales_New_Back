@@ -32,7 +32,7 @@ export class CloseSalesDay {
     cardAmount: number;
 
     @OneToMany(() => CloseSalesDaySale, closeSalesSaySale => closeSalesSaySale.closeSalesDay, { cascade: true })
-    sales: CloseSalesDaySale[];
+    closeSalesDaySales: CloseSalesDaySale[];
 
     @CreateDateColumn()
     createdAt: Date;

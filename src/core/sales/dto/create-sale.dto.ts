@@ -40,5 +40,5 @@ export class CreateSaleDto {
         ]
     })
     @Type(() => CreateSalePaymentsDto)
-    payments: CreateSalePaymentsDto[];
+    paymentMethod: CreateSalePaymentsDto[];
 }

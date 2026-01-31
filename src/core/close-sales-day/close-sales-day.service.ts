@@ -46,7 +46,7 @@ export class CloseSalesDayService {
             });
         }
 
-        for (const salesDto of createCloseSalesDayDto.sales) {
+        for (const salesDto of createCloseSalesDayDto.closeSalesDaySales) {
             const sale = await this.saleRepository.findOneBy({
                 id: salesDto.saleId
             });
@@ -66,7 +66,7 @@ export class CloseSalesDayService {
             user: user,
             cashAmount: createCloseSalesDayDto.cashAmount,
             cardAmount: createCloseSalesDayDto.cardAmount,
-            sales: createCloseSalesDayDto.sales.map(saleDto => ({
+            closeSalesDaySales: createCloseSalesDayDto.closeSalesDaySales.map(saleDto => ({
                 sale: { id: saleDto.saleId }
             }))
         });

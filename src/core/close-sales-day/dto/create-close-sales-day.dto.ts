@@ -37,5 +37,5 @@ export class CreateCloseSalesDayDto {
         ]
     })
     @Type(() => CreateCloseSalesDaySalesDto)
-    sales: CreateCloseSalesDaySalesDto[];
+    closeSalesDaySales: CreateCloseSalesDaySalesDto[];
 }

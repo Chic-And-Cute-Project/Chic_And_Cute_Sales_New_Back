@@ -1,12 +1,13 @@
 import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from "@nestjs/typeorm";
-import {DataSource, Repository} from "typeorm";
+import {Between, DataSource, Repository} from "typeorm";
 import {Sale} from "./entities/sales.entity";
 import {Branch} from "../branches/branches.entity";
 import {Product} from "../products/products.entity";
 import {User} from "../users/users.entity";
 import {CreateSaleDto} from "./dto/create-sale.dto";
 import {Inventory} from "../inventories/inventories.entity";
+import {PaymentType} from "./entities/sales-payment.entity";
 
 @Injectable()
 export class SalesService {
@@ -75,7 +76,7 @@ export class SalesService {
                     discount: detailDto.discount,
                     product: { id: detailDto.productId }
                 })),
-                paymentMethod: createSaleDto.payments.map(paymentDto => ({
+                paymentMethod: createSaleDto.paymentMethod.map(paymentDto => ({
                     type: paymentDto.type,
                     amount: paymentDto.amount
                 }))
@@ -104,5 +105,74 @@ export class SalesService {
         });
 
         return { sale: savedSale };
+    }
+
+    async findAllByBranchAndDate(branchId: number, date: Date) {
+        let nextDay = new Date(date);
+        nextDay.setDate(nextDay.getDate() + 1);
+        nextDay.setMilliseconds(nextDay.getMilliseconds() - 1);
+        const sales = await this.saleRepository.find({
+            where: {
+                branch: { id: branchId },
+                date: Between(date, nextDay)
+            },
+            relations: ['detail', 'detail.product', 'paymentMethod']
+        });
+        if (sales.length === 0) {
+            throw new NotFoundException({
+                message: ['Ventas no encontradas.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        let cashAmount = 0;
+        let cardAmount = 0;
+        let cashCount = 0;
+        let cardCount = 0;
+
+        for (const sale of sales) {
+            for (const payment of sale.paymentMethod) {
+                if (payment.type === PaymentType.VISA) {
+                    cashAmount += Number(payment.amount);
+                    cashCount++;
+                } else {
+                    cardAmount += Number(payment.amount);
+                    cardCount++;
+                }
+            }
+        }
+
+        return {
+            sales,
+            cashAmount,
+            cardAmount,
+            cashCount,
+            cardCount
+        };
+    }
+
+    async findAllByMyBranchAndDate(userId: number, date: Date) {
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+            relations: ['branch']
+        });
+        if (!user) {
+            throw new NotFoundException({
+                message: ['Usuario no encontrado.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        if (user.branch.name === 'Sin sede asignada') {
+            throw new BadRequestException({
+                message: ['No tiene asignada una sucursal.'],
+                error: "Bad Request",
+                statusCode: 400
+            });
+        }
+
+        return this.findAllByBranchAndDate(user.branch.id, date);
     }
 }
