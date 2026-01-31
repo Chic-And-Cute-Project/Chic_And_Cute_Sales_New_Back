@@ -1,11 +1,12 @@
-import {BadRequestException, Injectable} from '@nestjs/common';
+import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from "@nestjs/typeorm";
-import {Repository} from "typeorm";
+import {DataSource, Repository} from "typeorm";
 import {Sale} from "./entities/sales.entity";
 import {Branch} from "../branches/branches.entity";
 import {Product} from "../products/products.entity";
 import {User} from "../users/users.entity";
 import {CreateSaleDto} from "./dto/create-sale.dto";
+import {Inventory} from "../inventories/inventories.entity";
 
 @Injectable()
 export class SalesService {
@@ -19,6 +20,7 @@ export class SalesService {
         private readonly productRepository: Repository<Product>,
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
+        private dataSource: DataSource
     ) {}
 
     async create(userId: number, createSaleDto: CreateSaleDto) {
@@ -60,21 +62,46 @@ export class SalesService {
             }
         }
 
-        const newSale = this.saleRepository.create({
-            date: createSaleDto.date,
-            branch: branch,
-            user: user,
-            detail: createSaleDto.detail.map(detailDto => ({
-                quantity: detailDto.quantity,
-                discount: detailDto.discount,
-                product: { id: detailDto.productId }
-            })),
-            paymentMethod: createSaleDto.payments.map(paymentDto => ({
-                type: paymentDto.type,
-                amount: paymentDto.amount
-            }))
+        const savedSale = await this.dataSource.transaction(async manager => {
+            const saleRepository = manager.getRepository(Sale);
+            const inventoryRepository = manager.getRepository(Inventory);
+
+            const newSale = saleRepository.create({
+                date: createSaleDto.date,
+                branch: branch,
+                user: user,
+                detail: createSaleDto.detail.map(detailDto => ({
+                    quantity: detailDto.quantity,
+                    discount: detailDto.discount,
+                    product: { id: detailDto.productId }
+                })),
+                paymentMethod: createSaleDto.payments.map(paymentDto => ({
+                    type: paymentDto.type,
+                    amount: paymentDto.amount
+                }))
+            });
+            const savedSale = await saleRepository.save(newSale);
+
+            for (const detailDto of createSaleDto.detail) {
+                const inventory = await inventoryRepository.findOneBy({
+                    product: { id: detailDto.productId },
+                    branch: { id: branch.id }
+                });
+                if (!inventory) {
+                    throw new NotFoundException({
+                        message: ['Inventario no encontrado.'],
+                        error: 'Not Found',
+                        statusCode: 404
+                    });
+                }
+
+                inventory.quantity -= detailDto.quantity;
+
+                await inventoryRepository.update(inventory.id, { quantity: inventory.quantity });
+            }
+
+            return savedSale;
         });
-        const savedSale = await this.saleRepository.save(newSale);
 
         return { sale: savedSale };
     }
