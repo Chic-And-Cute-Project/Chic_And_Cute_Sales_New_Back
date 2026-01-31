@@ -8,13 +8,11 @@ import {
     ParseIntPipe,
     Post,
     Put,
-    Query,
     UsePipes,
     ValidationPipe
 } from '@nestjs/common';
 import {ProductsService} from "./products.service";
 import {CreateProductDto} from "./dto/create-product.dto";
-import {ApiQuery} from "@nestjs/swagger";
 import {UpdateProductDto} from "./dto/update-product.dto";
 
 @Controller('products')
