@@ -175,4 +175,97 @@ export class SalesService {
 
         return this.findAllByBranchAndDate(user.branch.id, date);
     }
+
+    async findAllByAdminReport(userId: number, branchId: number, minDate: Date, maxDate: Date) {
+        maxDate.setMilliseconds(maxDate.getMilliseconds() - 1);
+        const sales = await this.saleRepository.find({
+            where: {
+                user: { id: userId },
+                branch: { id: branchId },
+                date: Between(minDate, maxDate)
+            },
+            relations: ['detail', 'detail.product', 'paymentMethod']
+        });
+        if (sales.length === 0) {
+            throw new NotFoundException({
+                message: ['Ventas no encontradas.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        let cashAmount = 0;
+        let cardAmount = 0;
+
+        const aggregatedDetailsMap = new Map<
+          number,
+          {
+              product: Product;
+              quantity: number;
+              finalPrice: number;
+          }
+        >();
+
+        for (const sale of sales) {
+            for (const saleDetail of sale.detail) {
+                let price = saleDetail.quantity * Number(saleDetail.product.price);
+                if (saleDetail.discount != null) {
+                    price = price - (price * saleDetail.discount * 0.01);
+                }
+                const finalPrice = Number(price.toFixed(2));
+
+                let existingDetail = aggregatedDetailsMap.get(saleDetail.id);
+                if (existingDetail) {
+                    existingDetail.quantity += saleDetail.quantity;
+                    existingDetail.finalPrice += finalPrice;
+                } else {
+                    aggregatedDetailsMap.set(saleDetail.id, {
+                        product: saleDetail.product,
+                        quantity: saleDetail.quantity,
+                        finalPrice
+                    });
+                }
+            }
+            for (const payment of sale.paymentMethod) {
+                if (payment.type === PaymentType.VISA) {
+                    cashAmount += Number(payment.amount);
+                } else {
+                    cardAmount += Number(payment.amount);
+                }
+            }
+        }
+
+        const saleDetails = Array.from(aggregatedDetailsMap.values());
+
+        return {
+            saleDetails,
+            count: sales.length,
+            cashAmount,
+            cardAmount
+        };
+    }
+
+    async findAllByMyReport(userId: number, minDate: Date, maxDate: Date) {
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+            relations: ['branch']
+        });
+        if (!user) {
+            throw new NotFoundException({
+                message: ['Usuario no encontrado.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        if (user.branch.name === 'Sin sede asignada') {
+            throw new BadRequestException({
+                message: ['No tiene asignada una sucursal.'],
+                error: "Bad Request",
+                statusCode: 400
+            });
+        }
+
+        return this.findAllByAdminReport(userId, user.branch.id, minDate, maxDate);
+    }
 }

@@ -37,8 +37,19 @@ export class SalesController {
   @Get('my-branch-date/:date')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('jwt-auth')
-  @UsePipes(new ValidationPipe({ whitelist: true }))
   getAllByMyBranchAndDate(@Request() req: any, @Param('date', new ParseDatePipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser una fecha") })) date: Date) {
     return this.salesService.findAllByMyBranchAndDate(req.user.id, date);
+  }
+
+  @Get('admin-report/:userId/:branchId/:minDate/:maxDate')
+  getAllByAdminReport(@Param('userId', new ParseIntPipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser un número") })) userId: number, @Param('branchId', new ParseIntPipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser un número") })) branchId: number, @Param('minDate', new ParseDatePipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser una fecha") })) minDate: Date, @Param('maxDate', new ParseDatePipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser una fecha") })) maxDate: Date) {
+    return this.salesService.findAllByAdminReport(userId, branchId, minDate, maxDate);
+  }
+
+  @Get('my-report/:minDate/:maxDate')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('jwt-auth')
+  getAllByMyReport(@Request() req: any, @Param('minDate', new ParseDatePipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser una fecha") })) minDate: Date, @Param('maxDate', new ParseDatePipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser una fecha") })) maxDate: Date) {
+    return this.salesService.findAllByMyReport(req.user.id, minDate, maxDate);
   }
 }

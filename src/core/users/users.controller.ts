@@ -43,6 +43,11 @@ export class UsersController {
         return this.usersService.findById(req.user.id);
     }
 
+    @Get()
+    getAll() {
+        return this.usersService.findAll();
+    }
+
     @Get('roleBranch')
     getAllByBranchRole() {
         return this.usersService.findAllByBranchRole();
