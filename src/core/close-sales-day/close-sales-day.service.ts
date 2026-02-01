@@ -1,7 +1,7 @@
-import {BadRequestException, Injectable} from '@nestjs/common';
+import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from "@nestjs/typeorm";
 import {CloseSalesDay} from "./entities/close-sales-day.entity";
-import {Repository} from "typeorm";
+import {Between, Repository} from "typeorm";
 import {Branch} from "../branches/branches.entity";
 import {User} from "../users/users.entity";
 import {Sale} from "../sales/entities/sales.entity";
@@ -73,5 +73,49 @@ export class CloseSalesDayService {
         const savedCloseSalesDay = await this.closeSalesDayRepository.save(newCloseSalesDay);
 
         return { closeSalesDay: savedCloseSalesDay };
+    }
+
+    async findAllByBranchAndDate(branchId: number, minDate: Date, maxDate: Date) {
+        maxDate.setMilliseconds(maxDate.getMilliseconds() - 1);
+        const closeSalesDays = await this.closeSalesDayRepository.find({
+            where: {
+                branch: { id: branchId },
+                date: Between(minDate, maxDate)
+            },
+            relations: ['user', 'closeSalesDaySales', 'closeSalesDaySales.sale', 'closeSalesDaySales.sale.detail', 'closeSalesDaySales.sale.detail.product', 'closeSalesDaySales.sale.paymentMethod']
+        });
+        if (closeSalesDays.length === 0) {
+            throw new NotFoundException({
+                message: ['Cierre de días no encontrados.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        return { closeSalesDays };
+    }
+
+    async findAllByMyBranchAndDate(userId: number, minDate: Date, maxDate: Date) {
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+            relations: ['branch']
+        });
+        if (!user) {
+            throw new NotFoundException({
+                message: ['Usuario no encontrado.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        if (user.branch.name === 'Sin sede asignada') {
+            throw new BadRequestException({
+                message: ['No tiene asignada una sucursal.'],
+                error: "Bad Request",
+                statusCode: 400
+            });
+        }
+
+        return this.findAllByBranchAndDate(user.branch.id, minDate, maxDate);
     }
 }
