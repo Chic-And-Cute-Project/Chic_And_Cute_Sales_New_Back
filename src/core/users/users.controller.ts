@@ -64,7 +64,7 @@ export class UsersController {
         return this.usersService.searchUserSales(name);
     }
 
-    @Put('reset-password')
+    @Put('update/password')
     @UsePipes(new ValidationPipe({ whitelist: true }))
     resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
         return this.usersService.resetPassword(resetPasswordDto);
