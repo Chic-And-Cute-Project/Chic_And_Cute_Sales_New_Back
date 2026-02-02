@@ -5,7 +5,7 @@ export class AppController {
     @Get('version')
     getHello() {
         return {
-            version: "0.0.0"
+            version: "1.0.0"
         };
     }
 }

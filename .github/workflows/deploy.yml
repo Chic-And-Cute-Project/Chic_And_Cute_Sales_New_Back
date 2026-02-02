@@ -1,0 +1,39 @@
+name: Despliegue Continuo
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy_backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Conexión SSH al servidor EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY  }}
+          username: ${{ secrets.LIGHTSAIL_USER  }}
+          host: ${{ secrets.LIGHTSAIL_HOST  }}
+          script: |
+            set -e
+            cd htdocs/Chic_And_Cute_Sales_New_Back/
+            git pull
+            npm install
+            npm run build
+            pm2 restart chic-backend
+
+      - name: Notificación en Discord
+        if: success()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        uses: Ilshidur/action-discord@master
+        with:
+          args: "Despliegue exitoso en *chic-backend*"
+
+      - name: Notificación en Discord (fallo)
+        if: failure()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        uses: Ilshidur/action-discord@master
+        with:
+          args: 'El despliegue en *chic-backend* ha fallado'
