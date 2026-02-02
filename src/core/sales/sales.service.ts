@@ -133,7 +133,7 @@ export class SalesService {
 
         for (const sale of sales) {
             for (const payment of sale.paymentMethod) {
-                if (payment.type === PaymentType.VISA) {
+                if (payment.type === PaymentType.EFECTIVO) {
                     cashAmount += Number(payment.amount);
                     cashCount++;
                 } else {
@@ -227,7 +227,7 @@ export class SalesService {
                 }
             }
             for (const payment of sale.paymentMethod) {
-                if (payment.type === PaymentType.VISA) {
+                if (payment.type === PaymentType.EFECTIVO) {
                     cashAmount += Number(payment.amount);
                 } else {
                     cardAmount += Number(payment.amount);

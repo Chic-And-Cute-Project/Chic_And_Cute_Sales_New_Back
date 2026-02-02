@@ -82,13 +82,6 @@ export class DiscountsService {
             relations: ['product'],
             withDeleted: true
         });
-        if (discounts.length === 0) {
-            throw new BadRequestException({
-                message: ['Descuentos no encontrados.'],
-                error: "Not Found",
-                statusCode: 404
-            });
-        }
 
         return { discounts };
     }
