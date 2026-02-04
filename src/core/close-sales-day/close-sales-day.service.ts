@@ -76,11 +76,15 @@ export class CloseSalesDayService {
     }
 
     async findAllByBranchAndDate(branchId: number, minDate: Date, maxDate: Date) {
-        maxDate.setMilliseconds(maxDate.getMilliseconds() - 1);
+        let fromDate = new Date(minDate);
+        fromDate.setHours(0, 0, 0, 0);
+        let toDate = new Date(maxDate);
+        toDate.setHours(0, 0, 0, 0);
+        toDate.setMilliseconds(toDate.getMilliseconds() - 1);
         const closeSalesDays = await this.closeSalesDayRepository.find({
             where: {
                 branch: { id: branchId },
-                date: Between(minDate, maxDate)
+                date: Between(fromDate, toDate)
             },
             relations: ['user', 'closeSalesDaySales', 'closeSalesDaySales.sale', 'closeSalesDaySales.sale.detail', 'closeSalesDaySales.sale.detail.product', 'closeSalesDaySales.sale.paymentMethod']
         });

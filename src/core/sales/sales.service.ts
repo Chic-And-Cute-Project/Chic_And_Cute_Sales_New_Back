@@ -108,13 +108,15 @@ export class SalesService {
     }
 
     async findAllByBranchAndDate(branchId: number, date: Date) {
-        let nextDay = new Date(date);
+        let fromDate = new Date(date);
+        fromDate.setHours(0, 0, 0, 0);
+        let nextDay = new Date(fromDate);
         nextDay.setDate(nextDay.getDate() + 1);
         nextDay.setMilliseconds(nextDay.getMilliseconds() - 1);
         const sales = await this.saleRepository.find({
             where: {
                 branch: { id: branchId },
-                date: Between(date, nextDay)
+                date: Between(fromDate, nextDay)
             },
             relations: ['detail', 'detail.product', 'paymentMethod']
         });
@@ -177,12 +179,16 @@ export class SalesService {
     }
 
     async findAllByAdminReport(userId: number, branchId: number, minDate: Date, maxDate: Date) {
-        maxDate.setMilliseconds(maxDate.getMilliseconds() - 1);
+        let fromDate = new Date(minDate);
+        fromDate.setHours(0, 0, 0, 0);
+        let toDate = new Date(maxDate);
+        toDate.setHours(0, 0, 0, 0);
+        toDate.setMilliseconds(toDate.getMilliseconds() - 1);
         const sales = await this.saleRepository.find({
             where: {
                 user: { id: userId },
                 branch: { id: branchId },
-                date: Between(minDate, maxDate)
+                date: Between(fromDate, toDate)
             },
             relations: ['detail', 'detail.product', 'paymentMethod']
         });
