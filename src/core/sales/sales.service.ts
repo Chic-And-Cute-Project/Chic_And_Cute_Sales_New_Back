@@ -113,6 +113,7 @@ export class SalesService {
         let nextDay = new Date(fromDate);
         nextDay.setDate(nextDay.getDate() + 1);
         nextDay.setMilliseconds(nextDay.getMilliseconds() - 1);
+        console.log(date, fromDate, nextDay)
         const sales = await this.saleRepository.find({
             where: {
                 branch: { id: branchId },
