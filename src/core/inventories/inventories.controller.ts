@@ -26,6 +26,11 @@ export class InventoriesController {
     return this.inventoriesService.create(createBranchDto);
   }
 
+  @Get('branch/:branchId')
+  getAllByBranch(@Param('branchId', new ParseIntPipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser un número") })) branchId: number) {
+    return this.inventoriesService.findAllByBranch(branchId);
+  }
+
   @Get('branch/:branchId/:page')
   @ApiQuery({ name: 'available', type: Boolean, required: false })
   @UsePipes(new ValidationPipe({ whitelist: true }))

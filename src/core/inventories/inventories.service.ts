@@ -84,6 +84,22 @@ export class InventoriesService {
         return { inventory };
     }
 
+    async findAllByBranch(branchId: number) {
+        const inventories = await this.inventoryRepository.find({
+            where: { branch: { id: branchId } },
+            relations: ['product']
+        });
+        if (inventories.length === 0) {
+            throw new NotFoundException({
+                message: ['Inventarios no encontrados.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        return { inventories };
+    }
+
     async findAllByBranchAndPage(branchId: number, page: number, available: boolean = false) {
         const inventories = await this.inventoryRepository.find({
             where: { branch: { id: branchId }, ...(available ? { quantity: MoreThan(0) } : {}) },
