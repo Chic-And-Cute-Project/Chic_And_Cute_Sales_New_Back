@@ -152,6 +152,19 @@ export class ProductsService {
             });
         }
 
+        if (updateProductDto.code !== product.code) {
+            const productExisting = await this.productRepository.findOneBy({
+                code: updateProductDto.code
+            });
+            if (productExisting) {
+                throw new BadRequestException({
+                    message: ['El nuevo código ingresado ya existe.'],
+                    error: "Bad Request",
+                    statusCode: 400
+                });
+            }
+        }
+
         await this.productRepository.update(id, updateProductDto);
 
         return this.findById(id);
