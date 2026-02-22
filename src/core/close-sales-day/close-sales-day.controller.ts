@@ -1,7 +1,7 @@
 import {
   BadRequestException,
   Body,
-  Controller,
+  Controller, Delete,
   Get,
   Param, ParseDatePipe,
   ParseIntPipe,
@@ -39,5 +39,10 @@ export class CloseSalesDayController {
   @ApiBearerAuth('jwt-auth')
   getAllByMyBranchAndDate(@Request() req: any, @Param('minDate', new ParseDatePipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser una fecha") })) minDate: Date, @Param('maxDate', new ParseDatePipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser una fecha") })) maxDate: Date) {
     return this.closeSalesDayService.findAllByMyBranchAndDate(req.user.id, minDate, maxDate);
+  }
+
+  @Delete(':id')
+  delete(@Param('id', new ParseIntPipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser un número") })) id: number) {
+    return this.closeSalesDayService.delete(id);
   }
 }

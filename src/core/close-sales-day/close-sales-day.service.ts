@@ -122,4 +122,20 @@ export class CloseSalesDayService {
 
         return this.findAllByBranchAndDate(user.branch.id, minDate, maxDate);
     }
+
+    async delete(id: number) {
+        const result = await this.closeSalesDayRepository.softDelete(id);
+
+        if (result.affected === 0) {
+            throw new NotFoundException({
+                message: ['Producto no encontrado.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        return {
+            message: 'Cierre de caja eliminado correctamente.'
+        };
+    }
 }
