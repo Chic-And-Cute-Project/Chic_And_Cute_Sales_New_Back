@@ -52,6 +52,7 @@ export class UsersService {
             ...registerUserDto,
             password: hashedPassword,
             role: UserRole.BRANCH,
+            tokenVersion: 1,
             branch: defaultBranch
         });
         const savedUser = await this.userRepository.save(newUser);
@@ -81,7 +82,8 @@ export class UsersService {
         }
 
         const payload = {
-            sub: user.id
+            sub: user.id,
+            tokenVersion: user.tokenVersion
         }
         const token = this.jwtService.sign(payload);
 
@@ -197,8 +199,20 @@ export class UsersService {
 
         const hashedPassword = await bcrypt.hash(resetPasswordDto.password, 10);
 
-        await this.userRepository.update(user.id, { password: hashedPassword });
+        user.tokenVersion = user.tokenVersion + 1;
+        await this.userRepository.update(user.id, { password: hashedPassword, tokenVersion: user.tokenVersion });
 
         return this.findById(user.id);
+    }
+
+    async findByIdToValidateToken(id: number) {
+        const user = await this.userRepository.findOneBy({
+            id
+        });
+        if (!user) {
+            throw new NotFoundException('Usuario no encontrado');
+        }
+
+        return { user };
     }
 }

@@ -33,6 +33,9 @@ export class User {
     @Column({ type: 'enum', enum: UserRole })
     role: UserRole;
 
+    @Column()
+    tokenVersion: number;
+
     @ManyToOne(() => Branch)
     branch: Branch;
 
