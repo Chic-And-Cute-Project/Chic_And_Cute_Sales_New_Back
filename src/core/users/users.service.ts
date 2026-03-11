@@ -215,4 +215,20 @@ export class UsersService {
 
         return { user };
     }
+
+    async delete(id: number) {
+        const result = await this.userRepository.softDelete(id);
+
+        if (result.affected === 0) {
+            throw new NotFoundException({
+                message: ['Usuario no encontrado.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        return {
+            message: 'Usuario eliminado correctamente.'
+        };
+    }
 }

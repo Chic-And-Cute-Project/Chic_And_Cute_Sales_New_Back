@@ -1,7 +1,7 @@
 import {
     BadRequestException,
     Body,
-    Controller,
+    Controller, Delete,
     Get,
     Param, ParseIntPipe,
     Post,
@@ -68,5 +68,10 @@ export class UsersController {
     @UsePipes(new ValidationPipe({ whitelist: true }))
     resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
         return this.usersService.resetPassword(resetPasswordDto);
+    }
+
+    @Delete(':id')
+    delete(@Param('id', new ParseIntPipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser un número") })) id: number) {
+        return this.usersService.delete(id);
     }
 }
