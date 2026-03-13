@@ -274,4 +274,57 @@ export class SalesService {
 
         return this.findAllByAdminReport(userId, user.branch.id, minDate, maxDate);
     }
+
+    async delete(id: number) {
+        const sale = await this.saleRepository.findOne({
+            where: { id },
+            relations: ['detail.product', 'branch']
+        });
+        if (!sale) {
+            throw new NotFoundException({
+                message: ['Venta no encontrada.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        const result = await this.dataSource.transaction(async manager => {
+            const saleRepository = manager.getRepository(Sale);
+            const inventoryRepository = manager.getRepository(Inventory);
+
+            const result = await saleRepository.softDelete(id);
+
+            if (result.affected === 0) {
+                throw new NotFoundException({
+                    message: ['Venta no encontrada.'],
+                    error: 'Not Found',
+                    statusCode: 404
+                });
+            }
+
+            for (const detail of sale.detail) {
+                const inventory = await inventoryRepository.findOneBy({
+                    product: { id: detail.product.id },
+                    branch: { id: sale.branch.id }
+                });
+                if (!inventory) {
+                    throw new NotFoundException({
+                        message: ['Inventario no encontrado.'],
+                        error: 'Not Found',
+                        statusCode: 404
+                    })
+                }
+
+                inventory.quantity += detail.quantity;
+
+                await inventoryRepository.update(inventory.id, { quantity: inventory.quantity });
+            }
+
+            return {
+                message: 'Producto eliminado correctamente.'
+            };
+        });
+
+        return { result: result.message }
+    }
 }
