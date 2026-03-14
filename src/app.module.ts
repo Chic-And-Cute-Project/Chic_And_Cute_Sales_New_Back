@@ -11,6 +11,7 @@ import { RemissionGuidesModule } from './core/remission-guides/remission-guides.
 import { SalesModule } from './core/sales/sales.module';
 import { CloseSalesDayModule } from './core/close-sales-day/close-sales-day.module';
 import { BranchesModule } from './core/branches/branches.module';
+import { SupplyBranchesModule } from './core/supply-branches/supply-branches.module';
 
 @Module({
     imports: [
@@ -35,6 +36,7 @@ import { BranchesModule } from './core/branches/branches.module';
         SalesModule,
         CloseSalesDayModule,
         BranchesModule,
+        SupplyBranchesModule,
     ],
     controllers: [AppController],
     providers: [AppService],
