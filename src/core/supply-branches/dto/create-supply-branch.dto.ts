@@ -1,5 +1,5 @@
 import {ApiProperty} from "@nestjs/swagger";
-import {ArrayNotEmpty, IsArray, IsDate, IsNotEmpty, IsNumber, ValidateNested} from "class-validator";
+import {ArrayNotEmpty, IsArray, IsDate, IsNotEmpty, IsNumber, IsOptional, ValidateNested} from "class-validator";
 import {Type} from "class-transformer";
 import {CreateSupplyBranchProductsDto} from "./create-supply-branch-products.dto";
 
@@ -15,6 +15,15 @@ export class CreateSupplyBranchDto {
     @Type(() => Number)
     @ApiProperty({ example: 1 })
     branchId: number;
+
+    @IsNotEmpty({ message: 'El identificador es obligatorio.' })
+    @ApiProperty({ example: 'string' })
+    identifier: string;
+
+    @IsOptional()
+    @IsNotEmpty({ message: 'El comentario del consumo es obligatorio.' })
+    @ApiProperty({ example: 'string' })
+    comment: string;
 
     @IsArray({ message: 'Los productos deben ser una lista.' })
     @ArrayNotEmpty({ message: 'Los productos no pueden estar vacíos.' })

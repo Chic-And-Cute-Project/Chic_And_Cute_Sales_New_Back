@@ -1,4 +1,15 @@
-import {Body, Controller, Post, Request, UseGuards, UsePipes, ValidationPipe} from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller, Get,
+  Param, ParseDatePipe,
+  ParseIntPipe,
+  Post,
+  Request,
+  UseGuards,
+  UsePipes,
+  ValidationPipe
+} from '@nestjs/common';
 import {SupplyBranchesService} from "./supply-branches.service";
 import {JwtAuthGuard} from "../../security/jwt-auth.guard";
 import {ApiBearerAuth} from "@nestjs/swagger";
@@ -23,5 +34,10 @@ export class SupplyBranchesController {
   @UsePipes(new ValidationPipe({ whitelist: true }))
   takeInventory(@Body() createSupplyBranchDto: CreateSupplyBranchDto, @Request() req: any) {
     return this.supplyBranchesService.takeInventory(req.user.id, createSupplyBranchDto);
+  }
+
+  @Get('branch-dates/:branchId/:minDate/:maxDate')
+  getAllByBranchAndDates(@Param('branchId', new ParseIntPipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser un número") })) branchId: number, @Param('minDate', new ParseDatePipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser una fecha") })) minDate: Date, @Param('maxDate', new ParseDatePipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser una fecha") })) maxDate: Date) {
+    return this.supplyBranchesService.findAllByBranchAndDates(branchId, minDate, maxDate);
   }
 }

@@ -1,6 +1,6 @@
 import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from "@nestjs/typeorm";
-import {DataSource, Repository} from "typeorm";
+import {Between, DataSource, Repository} from "typeorm";
 import {SupplyBranch} from "./entities/supply-branch.entity";
 import {Branch} from "../branches/branches.entity";
 import {User} from "../users/users.entity";
@@ -15,6 +15,8 @@ export class SupplyBranchesService {
     private readonly branchRepository: Repository<Branch>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(SupplyBranch)
+    private readonly supplyBranchRepository: Repository<SupplyBranch>,
     private dataSource: DataSource
   ) {}
 
@@ -69,6 +71,7 @@ export class SupplyBranchesService {
         date: createSupplyBranchDto.date,
         branch: branch,
         type: "Añadir",
+        identifier: createSupplyBranchDto.identifier,
         products: createSupplyBranchDto.products.map(productDto => ({
           quantity: productDto.quantity,
           product: { id: productDto.productId }
@@ -139,6 +142,8 @@ export class SupplyBranchesService {
         date: createSupplyBranchDto.date,
         branch: branch,
         type: "Quitar",
+        identifier: createSupplyBranchDto.identifier,
+        comment: createSupplyBranchDto.comment,
         products: createSupplyBranchDto.products.map(productDto => ({
           quantity: productDto.quantity,
           product: { id: productDto.productId }
@@ -148,5 +153,30 @@ export class SupplyBranchesService {
     });
 
     return { supplyBranch: savedSupplyBranch };
+  }
+
+  async findAllByBranchAndDates(branchId: number, minDate: Date, maxDate: Date) {
+    let fromDate = new Date(minDate);
+    fromDate.setHours(0, 0, 0, 0);
+    let toDate = new Date(maxDate);
+    toDate.setHours(0, 0, 0, 0);
+    toDate.setMilliseconds(toDate.getMilliseconds() - 1);
+
+    const supplyBranches = await this.supplyBranchRepository.find({
+      where: {
+        branch: { id: branchId },
+        date: Between(fromDate, toDate)
+      },
+      relations: ['products', 'products.product']
+    });
+    if (supplyBranches.length === 0) {
+      throw new NotFoundException({
+        message: ['Ingresos y consumos no encontrados.'],
+        error: 'Not Found',
+        statusCode: 404
+      });
+    }
+
+    return { supplyBranches };
   }
 }

@@ -24,6 +24,12 @@ export class SupplyBranch {
     @Column()
     type: string;
 
+    @Column()
+    identifier: string;
+
+    @Column({ nullable: true })
+    comment: string;
+
     @OneToMany(() => SupplyBranchProduct, supplyBranchProduct => supplyBranchProduct.supplyBranch, { cascade: true })
     products: SupplyBranchProduct[];
 
