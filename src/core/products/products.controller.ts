@@ -8,12 +8,17 @@ import {
     ParseIntPipe,
     Post,
     Put,
+    UploadedFile,
+    UseInterceptors,
     UsePipes,
     ValidationPipe
 } from '@nestjs/common';
 import {ProductsService} from "./products.service";
 import {CreateProductDto} from "./dto/create-product.dto";
 import {UpdateProductDto} from "./dto/update-product.dto";
+import {FileInterceptor} from "@nestjs/platform-express";
+import {ApiConsumes} from "@nestjs/swagger";
+import {ImportProductsDto} from "./dto/import-products.dto";
 
 @Controller('products')
 export class ProductsController {
@@ -24,6 +29,14 @@ export class ProductsController {
     @UsePipes(new ValidationPipe({ whitelist: true }))
     create(@Body() createProductDto: CreateProductDto) {
         return this.productsService.create(createProductDto);
+    }
+
+    @Post('import')
+    @ApiConsumes('multipart/form-data')
+    @UsePipes(new ValidationPipe({ whitelist: true }))
+    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
+    importFromCsv(@UploadedFile() file: Express.Multer.File, @Body() _importProductsDto: ImportProductsDto) {
+        return this.productsService.importFromCsv(file);
     }
 
     @Get('page/:page')
