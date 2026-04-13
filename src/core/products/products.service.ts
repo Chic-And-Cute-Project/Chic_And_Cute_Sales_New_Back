@@ -296,6 +296,6 @@ export class ProductsService {
             };
         });
 
-        return { result: result.message }
+        return { message: result.message }
     }
 }
