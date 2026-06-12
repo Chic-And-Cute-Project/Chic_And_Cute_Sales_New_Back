@@ -5,7 +5,7 @@ import {
   Get,
   Param, ParseBoolPipe,
   ParseIntPipe,
-  Post, Put, Query, Request, UseGuards,
+  Post, Put, Query, Request, StreamableFile, UseGuards,
   UsePipes,
   ValidationPipe
 } from '@nestjs/common';
@@ -26,9 +26,23 @@ export class InventoriesController {
     return this.inventoriesService.create(createBranchDto);
   }
 
+  @Get('excel-branch/:branchId')
+  @ApiQuery({ name: 'available', type: Boolean, required: false })
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  async generateExcelByBranch(@Param('branchId', new ParseIntPipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser un número") })) branchId: number, @Query('available', new ParseBoolPipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser un booleano"), optional: true })) available: boolean) {
+    const generateExcelResponse = await this.inventoriesService.generateExcel(branchId, available);
+
+    return new StreamableFile(Buffer.from(generateExcelResponse.buffer), {
+      disposition: `attachment; filename="Inventarios.xlsx"`,
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+  }
+
   @Get('branch/:branchId')
-  getAllByBranch(@Param('branchId', new ParseIntPipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser un número") })) branchId: number) {
-    return this.inventoriesService.findAllByBranch(branchId);
+  @ApiQuery({ name: 'available', type: Boolean, required: false })
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  getAllByBranch(@Param('branchId', new ParseIntPipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser un número") })) branchId: number, @Query('available', new ParseBoolPipe({ exceptionFactory: () => new BadRequestException("El parametro debe ser un booleano"), optional: true })) available: boolean) {
+    return this.inventoriesService.findAllByBranch(branchId, available);
   }
 
   @Get('branch/:branchId/:page')

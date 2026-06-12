@@ -7,6 +7,7 @@ import {Product} from "../products/products.entity";
 import {Branch} from "../branches/branches.entity";
 import {UpdateInventoryDto} from "./dto/update-inventory.dto";
 import {User} from "../users/users.entity";
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class InventoriesService {
@@ -84,9 +85,42 @@ export class InventoriesService {
         return { inventory };
     }
 
-    async findAllByBranch(branchId: number) {
+    async generateExcel(branchId: number, available: boolean = false) {
         const inventories = await this.inventoryRepository.find({
-            where: { branch: { id: branchId } },
+            where: { branch: { id: branchId }, ...(available ? { quantity: MoreThan(0) } : {}) },
+            relations: ['product']
+        });
+        if (inventories.length === 0) {
+            throw new NotFoundException({
+                message: ['Inventarios no encontrados.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Inventarios');
+
+        const data = inventories.map(inventory => ({
+            code: inventory.product.code,
+            quantity: inventory.quantity,
+        }));
+
+        worksheet.columns = [
+            { header: 'Nombre', key: 'code', width: 40 },
+            { header: 'Stock', key: 'quantity', width: 15 },
+        ];
+
+        worksheet.addRows(data);
+
+        const buffer = await workbook.xlsx.writeBuffer();
+
+        return { buffer };
+    }
+
+    async findAllByBranch(branchId: number, available: boolean = false) {
+        const inventories = await this.inventoryRepository.find({
+            where: { branch: { id: branchId }, ...(available ? { quantity: MoreThan(0) } : {}) },
             relations: ['product']
         });
         if (inventories.length === 0) {
