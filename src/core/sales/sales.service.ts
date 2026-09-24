@@ -8,6 +8,7 @@ import {User} from "../users/users.entity";
 import {CreateSaleDto} from "./dto/create-sale.dto";
 import {Inventory} from "../inventories/inventories.entity";
 import {PaymentType} from "./entities/sales-payment.entity";
+import {CustomReceiptSequence} from "../custom-receipts/entities/custom-receipt-sequences.entity";
 
 @Injectable()
 export class SalesService {
@@ -63,9 +64,10 @@ export class SalesService {
             }
         }
 
-        const savedSale = await this.dataSource.transaction(async manager => {
+        const savedSaleResponse = await this.dataSource.transaction(async manager => {
             const saleRepository = manager.getRepository(Sale);
             const inventoryRepository = manager.getRepository(Inventory);
+            const customReceiptSequenceRepository = manager.getRepository(CustomReceiptSequence);
 
             const newSale = saleRepository.create({
                 date: createSaleDto.date,
@@ -101,10 +103,32 @@ export class SalesService {
                 await inventoryRepository.update(inventory.id, { quantity: inventory.quantity });
             }
 
-            return savedSale;
+            let customReceiptNumber: number = 0;
+            if (branch.name === 'Saga Jockey Plaza') {
+                const customReceiptSequence = await customReceiptSequenceRepository.findOne({
+                    where: { branch: { id: branch.id } },
+                    lock: { mode: 'pessimistic_write' },
+                });
+                if (!customReceiptSequence) {
+                    throw new BadRequestException({
+                        message: ['Correlativo no existe.'],
+                        error: 'Bad Request',
+                        statusCode: 400,
+                    });
+                }
+
+                customReceiptNumber = ++customReceiptSequence.lastNumber;
+                await customReceiptSequenceRepository.save(customReceiptSequence);
+            }
+
+            return { sale: savedSale, customReceiptNumber };
         });
 
-        return { sale: savedSale };
+        if (savedSaleResponse.customReceiptNumber === 0) {
+            return { sale: savedSaleResponse.sale };
+        } else {
+            return { sale: savedSaleResponse.sale, customReceiptNumber: savedSaleResponse.customReceiptNumber };
+        }
     }
 
     async findAllByBranchAndDate(branchId: number, date: Date) {

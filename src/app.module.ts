@@ -12,6 +12,7 @@ import { SalesModule } from './core/sales/sales.module';
 import { CloseSalesDayModule } from './core/close-sales-day/close-sales-day.module';
 import { BranchesModule } from './core/branches/branches.module';
 import { SupplyBranchesModule } from './core/supply-branches/supply-branches.module';
+import { CustomReceiptsModule } from './core/custom-receipts/custom-receipts.module';
 
 @Module({
     imports: [
@@ -37,6 +38,7 @@ import { SupplyBranchesModule } from './core/supply-branches/supply-branches.mod
         CloseSalesDayModule,
         BranchesModule,
         SupplyBranchesModule,
+        CustomReceiptsModule,
     ],
     controllers: [AppController],
     providers: [AppService],
