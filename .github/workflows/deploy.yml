@@ -16,7 +16,7 @@ jobs:
           host: ${{ secrets.LIGHTSAIL_HOST  }}
           script: |
             set -e
-            cd htdocs/Chic_And_Cute_Sales_New_Back/
+            cd Chic_And_Cute_Sales_New_Back/
             git pull
             npm install
             npm run build
