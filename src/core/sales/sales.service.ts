@@ -104,7 +104,7 @@ export class SalesService {
             }
 
             let customReceiptNumber: number = 0;
-            if (branch.name === 'Saga Jockey Plaza') {
+            if (branch.name === 'Flore') {
                 const customReceiptSequence = await customReceiptSequenceRepository.findOne({
                     where: { branch: { id: branch.id } },
                     lock: { mode: 'pessimistic_write' },
