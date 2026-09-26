@@ -13,6 +13,7 @@ import { CloseSalesDayModule } from './core/close-sales-day/close-sales-day.modu
 import { BranchesModule } from './core/branches/branches.module';
 import { SupplyBranchesModule } from './core/supply-branches/supply-branches.module';
 import { CustomReceiptsModule } from './core/custom-receipts/custom-receipts.module';
+import { WebauthnModule } from './webauthn/webauthn.module';
 
 @Module({
     imports: [
@@ -39,6 +40,7 @@ import { CustomReceiptsModule } from './core/custom-receipts/custom-receipts.mod
         BranchesModule,
         SupplyBranchesModule,
         CustomReceiptsModule,
+        WebauthnModule,
     ],
     controllers: [AppController],
     providers: [AppService],
