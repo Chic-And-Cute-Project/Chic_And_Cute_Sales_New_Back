@@ -8,6 +8,9 @@ export class Branch {
     @Column()
     name: string;
 
+    @Column()
+    isRegistered: boolean;
+
     @CreateDateColumn()
     createdAt: Date;
 
