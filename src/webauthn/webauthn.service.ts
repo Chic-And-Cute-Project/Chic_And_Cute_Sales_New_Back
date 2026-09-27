@@ -1,13 +1,17 @@
-import {BadRequestException, Injectable} from '@nestjs/common';
+import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
 import {
     generateRegistrationOptions,
     generateAuthenticationOptions,
     RegistrationResponseJSON,
-    verifyRegistrationResponse, verifyAuthenticationResponse, AuthenticationResponseJSON
+    verifyRegistrationResponse, verifyAuthenticationResponse
 } from '@simplewebauthn/server';
 import {InjectRepository} from "@nestjs/typeorm";
 import {AttendanceTerminal} from "./attendance-terminals.entity";
-import {Repository} from "typeorm";
+import {DataSource, Repository} from "typeorm";
+import {User} from "../core/users/users.entity";
+import {Branch} from "../core/branches/branches.entity";
+import {VerifyAuthenticationDto} from "./dto/verify-authentication.dto";
+import {Attendance} from "../core/attendances/attendance.entity";
 
 @Injectable()
 export class WebauthnService {
@@ -16,11 +20,13 @@ export class WebauthnService {
     private readonly origin = process.env.WEBAUTHN_ORIGIN!;
 
     private registrationChallenge: string | null = null;
-    private authenticationChallenge: string | null = null;
 
     constructor(
         @InjectRepository(AttendanceTerminal)
-        private attendanceTerminalRepository: Repository<AttendanceTerminal>
+        private attendanceTerminalRepository: Repository<AttendanceTerminal>,
+        @InjectRepository(User)
+        private userRepository: Repository<User>,
+        private dataSource: DataSource
     ) {}
 
     async generateRegistrationOptions() {
@@ -43,10 +49,41 @@ export class WebauthnService {
         return { options };
     }
 
-    async verifyRegistration(response: RegistrationResponseJSON) {
+    async verifyRegistration(response: RegistrationResponseJSON, userId: number) {
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+            relations: ['branch']
+        });
+        if (!user) {
+            throw new NotFoundException({
+                message: ['Usuario no encontrado.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        if (user.branch.name === 'Sin sede asignada') {
+            throw new BadRequestException({
+                message: ['No tiene asignada una sucursal.'],
+                error: "Bad Request",
+                statusCode: 400
+            });
+        }
+
         if (!this.registrationChallenge) {
             throw new BadRequestException({
                 message: ['No existe un registro activo.'],
+                error: "Bad Request",
+                statusCode: 400
+            });
+        }
+
+        const attendanceTerminalExisting = await this.attendanceTerminalRepository.findOneBy({
+             branch: { id: user.branch.id }
+        });
+        if (attendanceTerminalExisting) {
+            throw new BadRequestException({
+                message: ['Ya existe un terminal de asistencia asignado a la sucursal.'],
                 error: "Bad Request",
                 statusCode: 400
             });
@@ -78,21 +115,53 @@ export class WebauthnService {
         const { credential } = registrationInfo;
         this.registrationChallenge = null;
 
-        const newAttendanceTerminal = this.attendanceTerminalRepository.create({
-            name: 'Terminal de prueba',
-            credentialId: credential.id,
-            publicKey: Buffer.from(credential.publicKey).toString('base64'),
-            counter: credential.counter
+        const savedAttendanceTerminal = await this.dataSource.transaction(async manager => {
+            const attendanceTerminalRepository = manager.getRepository(AttendanceTerminal);
+            const branchRepository = manager.getRepository(Branch);
+
+            const newAttendanceTerminal = attendanceTerminalRepository.create({
+                name: 'Terminal de asistencia',
+                credentialId: credential.id,
+                publicKey: Buffer.from(credential.publicKey).toString('base64'),
+                counter: credential.counter,
+                branch: user.branch
+            });
+            const savedAttendanceTerminal = await attendanceTerminalRepository.save(newAttendanceTerminal);
+
+            await branchRepository.update(user.branch.id, {
+                isRegistered: true
+            });
+
+            return savedAttendanceTerminal;
         });
-        const savedAttendanceTerminal = await this.attendanceTerminalRepository.save(newAttendanceTerminal);
 
         return { attendanceTerminal: savedAttendanceTerminal };
     }
 
-    async generateAuthenticationOptions() {
+    async generateAuthenticationOptions(userId: number) {
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+            relations: ['branch']
+        });
+        if (!user) {
+            throw new NotFoundException({
+                message: ['Usuario no encontrado.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        if (user.branch.name === 'Sin sede asignada') {
+            throw new BadRequestException({
+                message: ['No tiene asignada una sucursal.'],
+                error: "Bad Request",
+                statusCode: 400
+            });
+        }
+
         const attendanceTerminal = await this.attendanceTerminalRepository.findOne({
             where: {
-                id: 1,
+                branch: { id: user.branch.id },
             },
         });
         if (!attendanceTerminal) {
@@ -111,15 +180,30 @@ export class WebauthnService {
             }],
         });
 
-        this.authenticationChallenge = options.challenge;
+        attendanceTerminal.authenticationChallenge = options.challenge;
+        await this.attendanceTerminalRepository.save(
+            attendanceTerminal
+        );
 
         return { options };
     }
 
-    async verifyAuthentication(response: AuthenticationResponseJSON) {
-        if (!this.authenticationChallenge) {
+    async verifyAuthentication(verifyAuthenticationDto: VerifyAuthenticationDto, userId: number) {
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+            relations: ['branch']
+        });
+        if (!user) {
+            throw new NotFoundException({
+                message: ['Usuario no encontrado.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        if (user.branch.name === 'Sin sede asignada') {
             throw new BadRequestException({
-                message: ['No existe un challenge de autenticación activo.'],
+                message: ['No tiene asignada una sucursal.'],
                 error: "Bad Request",
                 statusCode: 400
             });
@@ -127,7 +211,7 @@ export class WebauthnService {
 
         const attendanceTerminal = await this.attendanceTerminalRepository.findOne({
             where: {
-                id: 1,
+                branch: { id: user.branch.id },
             },
         });
         if (!attendanceTerminal) {
@@ -138,11 +222,19 @@ export class WebauthnService {
             });
         }
 
+        if (!attendanceTerminal.authenticationChallenge) {
+            throw new BadRequestException({
+                message: ['No existe un challenge de autenticación activo.'],
+                error: "Bad Request",
+                statusCode: 400
+            });
+        }
+
         const verification = await verifyAuthenticationResponse({
-            response,
+            response: verifyAuthenticationDto.authenticationResponseJSON,
             expectedRPID: this.rpID,
             expectedOrigin: this.origin,
-            expectedChallenge: this.authenticationChallenge,
+            expectedChallenge: attendanceTerminal.authenticationChallenge,
             credential: {
                 id: attendanceTerminal.credentialId,
                 publicKey: Buffer.from(attendanceTerminal.publicKey, 'base64'),
@@ -157,13 +249,29 @@ export class WebauthnService {
             });
         }
 
-        this.authenticationChallenge = null;
+        const savedAttendance = await this.dataSource.transaction(async manager => {
+            const attendanceTerminalRepository = manager.getRepository(AttendanceTerminal);
+            const attendanceRepository = manager.getRepository(Attendance);
 
-        attendanceTerminal.counter = verification.authenticationInfo.newCounter;
-        const updatedAttendanceTerminal = await this.attendanceTerminalRepository.save(
-            attendanceTerminal,
-        );
+            const newAttendance = attendanceRepository.create({
+                latitude: verifyAuthenticationDto.attendance.latitude,
+                longitude: verifyAuthenticationDto.attendance.longitude,
+                accuracy: verifyAuthenticationDto.attendance.accuracy,
+                branch: user.branch,
+                user: user,
+                attendanceTerminal: attendanceTerminal
+            });
+            const savedAttendance = await attendanceRepository.save(newAttendance);
 
-        return { attendanceTerminal: updatedAttendanceTerminal };
+            attendanceTerminal.authenticationChallenge = null;
+            attendanceTerminal.counter = verification.authenticationInfo.newCounter;
+            await attendanceTerminalRepository.save(
+                attendanceTerminal,
+            );
+
+            return savedAttendance;
+        });
+
+        return { attendance: savedAttendance };
     }
 }

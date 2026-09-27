@@ -27,7 +27,8 @@ export class BranchesService {
     }
 
     const newBranch = this.branchRepository.create({
-      name: createBranchDto.name
+      name: createBranchDto.name,
+      isRegistered: false
     });
     const savedBranch = await this.branchRepository.save(newBranch);
 

@@ -26,7 +26,10 @@ export class AttendanceTerminal {
     @Column()
     counter: number;
 
-    @ManyToOne(() => Branch, { nullable: true })
+    @Column({ type: 'text', nullable: true })
+    authenticationChallenge: string | null;
+
+    @ManyToOne(() => Branch)
     branch: Branch;
 
     @CreateDateColumn()

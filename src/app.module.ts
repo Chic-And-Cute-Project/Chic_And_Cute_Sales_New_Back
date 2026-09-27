@@ -14,6 +14,7 @@ import { BranchesModule } from './core/branches/branches.module';
 import { SupplyBranchesModule } from './core/supply-branches/supply-branches.module';
 import { CustomReceiptsModule } from './core/custom-receipts/custom-receipts.module';
 import { WebauthnModule } from './webauthn/webauthn.module';
+import { AttendancesModule } from './core/attendances/attendances.module';
 
 @Module({
     imports: [
@@ -41,6 +42,7 @@ import { WebauthnModule } from './webauthn/webauthn.module';
         SupplyBranchesModule,
         CustomReceiptsModule,
         WebauthnModule,
+        AttendancesModule,
     ],
     controllers: [AppController],
     providers: [AppService],
