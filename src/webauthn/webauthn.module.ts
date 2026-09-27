@@ -4,10 +4,11 @@ import { WebauthnService } from './webauthn.service';
 import {AttendanceTerminal} from "./attendance-terminals.entity";
 import {TypeOrmModule} from "@nestjs/typeorm";
 import {User} from "../core/users/users.entity";
+import {Attendance} from "../core/attendances/attendance.entity";
 
 @Module({
   imports: [
-      TypeOrmModule.forFeature([AttendanceTerminal, User]),
+      TypeOrmModule.forFeature([AttendanceTerminal, User, Attendance]),
   ],
   controllers: [WebauthnController],
   providers: [WebauthnService]

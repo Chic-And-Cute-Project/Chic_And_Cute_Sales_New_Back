@@ -7,11 +7,11 @@ import {
 } from '@simplewebauthn/server';
 import {InjectRepository} from "@nestjs/typeorm";
 import {AttendanceTerminal} from "./attendance-terminals.entity";
-import {DataSource, Repository} from "typeorm";
+import {Between, DataSource, Repository} from "typeorm";
 import {User} from "../core/users/users.entity";
 import {Branch} from "../core/branches/branches.entity";
 import {VerifyAuthenticationDto} from "./dto/verify-authentication.dto";
-import {Attendance} from "../core/attendances/attendance.entity";
+import {Attendance, AttendancePunctuality} from "../core/attendances/attendance.entity";
 
 @Injectable()
 export class WebauthnService {
@@ -26,6 +26,8 @@ export class WebauthnService {
         private attendanceTerminalRepository: Repository<AttendanceTerminal>,
         @InjectRepository(User)
         private userRepository: Repository<User>,
+        @InjectRepository(Attendance)
+        private attendanceRepository: Repository<Attendance>,
         private dataSource: DataSource
     ) {}
 
@@ -209,6 +211,21 @@ export class WebauthnService {
             });
         }
 
+        const distance = this.calculateDistance(
+            user.branch.latitude,
+            user.branch.longitude,
+            verifyAuthenticationDto.attendance.latitude,
+            verifyAuthenticationDto.attendance.longitude,
+        );
+
+        if (!user.branch.isTestingLocation && distance > Number(user.branch.attendanceRadius)) {
+            throw new BadRequestException({
+                message: ['La ubicación del dispositivo se encuentra fuera de la sucursal.'],
+                error: 'Bad Request',
+                statusCode: 400,
+            });
+        }
+
         const attendanceTerminal = await this.attendanceTerminalRepository.findOne({
             where: {
                 branch: { id: user.branch.id },
@@ -227,6 +244,25 @@ export class WebauthnService {
                 message: ['No existe un challenge de autenticación activo.'],
                 error: "Bad Request",
                 statusCode: 400
+            });
+        }
+
+        const today = new Date();
+
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+
+        const existingAttendance = await this.attendanceRepository.findOne({
+            where: {
+                user: { id: userId },
+                createdAt: Between(startOfDay, endOfDay),
+            },
+        });
+        if (!user.branch.isTestingLocation && existingAttendance) {
+            throw new BadRequestException({
+                message: ['Ya existe una asistencia registrada para el día de hoy.'],
+                error: 'Bad Request',
+                statusCode: 400,
             });
         }
 
@@ -249,6 +285,8 @@ export class WebauthnService {
             });
         }
 
+        const punctualityObject = this.calculatePunctuality(user.branch.entryTime, new Date());
+
         const savedAttendance = await this.dataSource.transaction(async manager => {
             const attendanceTerminalRepository = manager.getRepository(AttendanceTerminal);
             const attendanceRepository = manager.getRepository(Attendance);
@@ -257,6 +295,9 @@ export class WebauthnService {
                 latitude: verifyAuthenticationDto.attendance.latitude,
                 longitude: verifyAuthenticationDto.attendance.longitude,
                 accuracy: verifyAuthenticationDto.attendance.accuracy,
+                distanceFromBranch: distance,
+                punctuality: punctualityObject.punctuality,
+                lateMinutes: punctualityObject.lateMinutes,
                 branch: user.branch,
                 user: user,
                 attendanceTerminal: attendanceTerminal
@@ -273,5 +314,47 @@ export class WebauthnService {
         });
 
         return { attendance: savedAttendance };
+    }
+
+    private calculateDistance(latitude1: number, longitude1: number, latitude2: number, longitude2: number): number {
+        const earthRadius = 6371000;
+
+        const toRadians = (degrees: number) => degrees * Math.PI / 180;
+
+        const dLatitude = toRadians(latitude2 - latitude1);
+        const dLongitude = toRadians(longitude2 - longitude1);
+
+        const a = Math.sin(dLatitude / 2) * Math.sin(dLatitude / 2) + Math.cos(toRadians(latitude1)) * Math.cos(toRadians(latitude2)) * Math.sin(dLongitude / 2) * Math.sin(dLongitude / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return earthRadius * c;
+    }
+
+    private calculatePunctuality(entryTime: string, attendanceDate: Date) {
+        const [entryHour, entryMinute] = entryTime.split(':').map(Number);
+
+        const expectedMinutes = entryHour * 60 + entryMinute;
+
+        const actualMinutes = attendanceDate.getHours() * 60 + attendanceDate.getMinutes();
+
+        const difference = actualMinutes - expectedMinutes;
+        if (difference <= 0) {
+            return {
+                punctuality: AttendancePunctuality.PUNCTUAL,
+                lateMinutes: difference,
+            };
+        }
+
+        if (difference <= 5) {
+            return {
+                punctuality: AttendancePunctuality.TOLERANCE,
+                lateMinutes: difference,
+            };
+        }
+
+        return {
+            punctuality: AttendancePunctuality.LATE,
+            lateMinutes: difference,
+        };
     }
 }
