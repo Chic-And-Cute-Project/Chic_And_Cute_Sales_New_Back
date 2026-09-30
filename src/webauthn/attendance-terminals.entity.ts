@@ -20,7 +20,7 @@ export class AttendanceTerminal {
     @Column()
     credentialId: string;
 
-    @Column()
+    @Column({ type: 'text' })
     publicKey: string;
 
     @Column()
