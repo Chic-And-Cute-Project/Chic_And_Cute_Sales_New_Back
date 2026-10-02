@@ -363,6 +363,14 @@ export class WebauthnService {
             seconds: attendanceDate.getUTCSeconds(),
         });
 
+        const limaTime = new Intl.DateTimeFormat('en-GB', {
+            timeZone: 'America/Lima',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+        }).format(attendanceDate);
+
+        const [actualHour, actualMinute] = limaTime.split(':').map(Number);
         const [entryHour, entryMinute] = entryTime.split(':').map(Number);
 
         console.log('[PUNCTUALITY] Parsed entry time:', {
@@ -372,9 +380,6 @@ export class WebauthnService {
         });
 
         const expectedMinutes = entryHour * 60 + entryMinute;
-
-        const actualHour = attendanceDate.getHours();
-        const actualMinute = attendanceDate.getMinutes();
 
         const actualMinutes = actualHour * 60 + actualMinute;
 
