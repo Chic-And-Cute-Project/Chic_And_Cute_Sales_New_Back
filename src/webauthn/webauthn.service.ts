@@ -331,38 +331,6 @@ export class WebauthnService {
     }
 
     private calculatePunctuality(entryTime: string, attendanceDate: Date) {
-        console.log('========== CALCULATE PUNCTUALITY ==========');
-
-        console.log('[PUNCTUALITY] entryTime:', entryTime);
-
-        console.log('[PUNCTUALITY] attendanceDate:', attendanceDate);
-        console.log('[PUNCTUALITY] attendanceDate.toString():', attendanceDate.toString());
-        console.log('[PUNCTUALITY] attendanceDate.toISOString():', attendanceDate.toISOString());
-        console.log(
-            '[PUNCTUALITY] attendanceDate.getTime():',
-            attendanceDate.getTime(),
-        );
-
-        console.log('[PUNCTUALITY] Server timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone);
-
-        console.log('[PUNCTUALITY] Date components:', {
-            year: attendanceDate.getFullYear(),
-            month: attendanceDate.getMonth() + 1,
-            day: attendanceDate.getDate(),
-            hours: attendanceDate.getHours(),
-            minutes: attendanceDate.getMinutes(),
-            seconds: attendanceDate.getSeconds(),
-        });
-
-        console.log('[PUNCTUALITY] UTC components:', {
-            year: attendanceDate.getUTCFullYear(),
-            month: attendanceDate.getUTCMonth() + 1,
-            day: attendanceDate.getUTCDate(),
-            hours: attendanceDate.getUTCHours(),
-            minutes: attendanceDate.getUTCMinutes(),
-            seconds: attendanceDate.getUTCSeconds(),
-        });
-
         const limaTime = new Intl.DateTimeFormat('en-GB', {
             timeZone: 'America/Lima',
             hour: '2-digit',
@@ -373,36 +341,9 @@ export class WebauthnService {
         const [actualHour, actualMinute] = limaTime.split(':').map(Number);
         const [entryHour, entryMinute] = entryTime.split(':').map(Number);
 
-        console.log('[PUNCTUALITY] Parsed entry time:', {
-            entryTime,
-            entryHour,
-            entryMinute,
-        });
-
         const expectedMinutes = entryHour * 60 + entryMinute;
-
         const actualMinutes = actualHour * 60 + actualMinute;
-
-        console.log('[PUNCTUALITY] Expected:', {
-            entryHour,
-            entryMinute,
-            expectedMinutes,
-        });
-
-        console.log('[PUNCTUALITY] Actual:', {
-            actualHour,
-            actualMinute,
-            actualMinutes,
-        });
-
         const difference = actualMinutes - expectedMinutes;
-
-        console.log('[PUNCTUALITY] Difference:', {
-            difference,
-            expectedMinutes,
-            actualMinutes,
-        });
-
         if (difference <= 0) {
             return {
                 punctuality: AttendancePunctuality.PUNCTUAL,
