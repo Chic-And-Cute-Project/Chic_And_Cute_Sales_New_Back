@@ -1,9 +1,10 @@
-import {BadRequestException, Injectable} from '@nestjs/common';
+import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from "@nestjs/typeorm";
 import {CustomReceipt} from "./entities/custom-receipt.entity";
 import {Repository} from "typeorm";
 import {CreateCustomReceiptDto} from "./dto/create-custom-receipt.dto";
 import {Sale} from "../sales/entities/sales.entity";
+import * as ExcelJS from "exceljs";
 
 @Injectable()
 export class CustomReceiptsService {
@@ -58,5 +59,61 @@ export class CustomReceiptsService {
         const savedCustomReceipt = await this.customReceiptRepository.save(newCustomReceipt);
 
         return { customReceipt: savedCustomReceipt }
+    }
+
+    async findAll() {
+        const customReceipts = await this.customReceiptRepository.find();
+
+        if (customReceipts.length === 0) {
+            throw new NotFoundException({
+                message: ['No se encontraron recibos.'],
+                error: "Not Found",
+                statusCode: 404
+            });
+        }
+
+        return { customReceipts };
+    }
+
+    async generateExcel() {
+        const customReceipts = await this.customReceiptRepository.find();
+        if (customReceipts.length === 0) {
+            throw new NotFoundException({
+                message: ['No se encontraron recibos.'],
+                error: 'Not Found',
+                statusCode: 404
+            });
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Recibos');
+
+        const data = customReceipts.map(customReceipt => ({
+            sequence: customReceipt.sequence,
+            name: customReceipt.name,
+            documentNumber: customReceipt.documentNumber,
+            phoneNumber: customReceipt.phoneNumber,
+            address: customReceipt.address,
+            district: customReceipt.district,
+            province: customReceipt.province,
+            createdAt: customReceipt.createdAt
+        }));
+
+        worksheet.columns = [
+            { header: 'Serie', key: 'sequence', width: 15 },
+            { header: 'Nombre', key: 'name', width: 40 },
+            { header: 'Documento', key: 'documentNumber', width: 20 },
+            { header: 'Teléfono', key: 'phoneNumber', width: 20 },
+            { header: 'Dirección', key: 'address', width: 40 },
+            { header: 'Distrito', key: 'district', width: 20 },
+            { header: 'Provincia', key: 'province', width: 20 },
+            { header: 'Fecha de creación', key: 'createdAt', width: 20 },
+        ];
+
+        worksheet.addRows(data);
+
+        const buffer = await workbook.xlsx.writeBuffer();
+
+        return { buffer };
     }
 }
